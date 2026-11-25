@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini CRM</title>
+<style>
+  :root {
+    --bg: #f3f5f9;
+    --card: #ffffff;
+    --border: #e3e7ee;
+    --text: #1e2532;
+    --muted: #6b7382;
+    --accent: #3b6ef5;
+    --accent-soft: #e8eefe;
+    --green: #1e9e5a;
+    --green-soft: #e3f5eb;
+    --orange: #d97706;
+    --orange-soft: #fdf0dd;
+    --red: #dc3545;
+    --red-soft: #fdeaea;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+  a { color: var(--accent); text-decoration: none; }
+
+  /* ---- Sidebar ---- */
+  .sidebar {
+    width: 220px;
+    background: #ffffff;
+    border-right: 1px solid var(--border);
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .logo {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo span.k { color: var(--accent); }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 15px;
+    color: var(--text);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+  .nav-btn:hover { background: var(--bg); }
+  .nav-btn.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .nav-btn .badge {
+    margin-left: auto;
+    background: var(--red);
+    color: #fff;
+    font-size: 11px;
+    border-radius: 10px;
+    padding: 1px 7px;
+    display: none;
+  }
+  .sidebar .foot { margin-top: auto; font-size: 12px; color: var(--muted); padding: 0 8px; }
+
+  /* ---- Main ---- */
+  main { flex: 1; padding: 26px 32px; max-width: 1100px; }
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+  .topbar h1 { font-size: 22px; margin-right: auto; }
+  input[type=text], input[type=email], input[type=tel], input[type=date], select, textarea {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    background: #fff;
+    color: var(--text);
+  }
+  textarea { resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .search { width: 240px; }
+  .btn {
+    padding: 9px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text);
+  }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+  .btn.danger { color: var(--red); border-color: var(--red-soft); background: var(--red-soft); }
+  .btn.small { padding: 5px 10px; font-size: 13px; }
+
+  /* ---- Cards / stats ---- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .stat-card .num { font-size: 28px; font-weight: 700; }
+  .stat-card .lbl { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .stat-card.red .num { color: var(--red); }
+  .stat-card.green .num { color: var(--green); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } main { padding: 18px; } }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  .panel h2 { font-size: 15px; margin-bottom: 12px; }
+
+  /* ---- Table ---- */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th {
+    text-align: left;
+    padding: 12px 14px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr.clickable { cursor: pointer; }
+  tr.clickable:hover { background: #fafbfd; }
+  .empty { padding: 40px; text-align: center; color: var(--muted); }
+
+  /* ---- Tags ---- */
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .tag.prospect { background: var(--orange-soft); color: var(--orange); }
+  .tag.client { background: var(--green-soft); color: var(--green); }
+  .tag.inactif { background: #eef0f4; color: var(--muted); }
+  .tag.todo { background: #eef0f4; color: var(--muted); }
+  .tag.doing { background: var(--accent-soft); color: var(--accent); }
+  .tag.done { background: var(--green-soft); color: var(--green); }
+  .tag.p-basse { background: #eef0f4; color: var(--muted); }
+  .tag.p-moyenne { background: var(--orange-soft); color: var(--orange); }
+  .tag.p-haute { background: var(--red-soft); color: var(--red); }
+  .tag.late { background: var(--red); color: #fff; }
+  .tag.today { background: var(--orange); color: #fff; }
+
+  /* ---- Modal ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20, 25, 35, .45);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 6vh 16px;
+    z-index: 50;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 520px;
+    padding: 24px;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+  .modal h2 { font-size: 18px; margin-bottom: 18px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+  .field input, .field select, .field textarea { width: 100%; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+  .modal-actions .left { margin-right: auto; }
+
+  /* ---- Activities ---- */
+  .act-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .act-item:last-child { border-bottom: none; }
+  .act-icon {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 15px;
+  }
+  .act-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar select { width: auto; }
+  .toolbar .spacer { flex: 1; }
+  .contact-card-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .info-row { font-size: 14px; margin: 4px 0; }
+  .info-row .lbl { color: var(--muted); display: inline-block; min-width: 90px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo"><span class="k">■</span> Mini CRM</div>
+  <button class="nav-btn active" data-view="dashboard">📊 Tableau de bord</button>
+  <button class="nav-btn" data-view="contacts">👥 Contacts</button>
+  <button class="nav-btn" data-view="tasks">✅ Tâches <span class="badge" id="taskBadge"></span></button>
+  <button class="nav-btn" data-view="activities">📞 Activités</button>
+  <div class="foot">Données locales<br>(navigateur uniquement)</div>
+</nav>
+
+<main>
+  <!-- ================= DASHBOARD ================= -->
+  <section id="view-dashboard">
+    <div class="topbar">
+      <h1>Tableau de bord</h1>
+      <button class="btn" onclick="exportData()">⬇ Exporter</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">⬆ Importer</button>
+      <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+    </div>
+    <div class="stats" id="statsRow"></div>
+    <div class="grid-2">
+      <div class="panel">
+        <h2>⏰ Tâches à venir</h2>
+        <div id="upcomingTasks"></div>
+      </div>
+      <div class="panel">
+        <h2>🕘 Dernières activités</h2>
+        <div id="recentActivities"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CONTACTS ================= -->
+  <section id="view-contacts" class="hidden">
+    <div class="topbar">
+      <h1>Contacts</h1>
+      <input type="text" id="contactSearch" class="search" placeholder="Rechercher…" oninput="renderContacts()">
+      <button class="btn primary" onclick="openContactModal()">+ Nouveau contact</button>
+    </div>
+    <div class="toolbar">
+      <select id="contactStatusFilter" onchange="renderContacts()">
+        <option value="">Tous les statuts</option>
+        <option value="Prospect">Prospect</option>
+        <option value="Client">Client</option>
+        <option value="Inactif">Inactif</option>
+      </select>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead><tr>
+          <th>Nom</th><th>Entreprise</th><th>Fonction</th><th>Email</th><th>Téléphone</th><th>Statut</th><th></th>
+        </tr></thead>
+        <tbody id="contactRows"></tbody>
+      </table>
+      <div class="empty hidden" id="contactsEmpty">Aucun contact. Clique sur « + Nouveau contact ».</div>
+    </div>
+  </section>
+
+  <!-- ================= TACHES ================= -->
+  <section id="view-tasks" class="hidden">
+    <div class="topbar">
+      <h1>Tâches</h1>
+      <input type="text" id="taskSearch" class="search" placeholder="Rechercher…" oninput="renderTasks()">
+      <button class="btn primary" onclick="openTaskModal()">+ Nouvelle tâche</button>
+    </div>
+    <div class="toolbar">
+      <select id="taskStatusFilter" onchange="renderTasks()">
+        <option value="">Tous les statuts</option>
+        <option value="À faire">À faire</option>
+        <option value="En cours">En cours</option>
+        <option value="Terminée">Terminée</option>
+      </select>
+      <span class="spacer"></span>
+      <label style="font-size:13px;color:var(--muted);"><input type="checkbox" id="showDone" onchange="renderTasks()" checked> Afficher les terminées</label>
+    </div>
+    <div class="table-card">
+      <table>
+        <thead><tr>
+          <th>Tâche</th><th>Contact</th><th>Échéance</th><th>Priorité</th><th>Statut</th><th></th>
+        </tr></thead>
+        <tbody id="taskRows"></tbody>
+      </table>
+      <div class="empty hidden" id="tasksEmpty">Aucune tâche. Clique sur « + Nouvelle tâche ».</div>
+    </div>
+  </section>
+
+  <!-- ================= ACTIVITES ================= -->
+  <section id="view-activities" class="hidden">
+    <div class="topbar">
+      <h1>Activités</h1>
+      <button class="btn primary" onclick="openActivityModal()">+ Nouvelle activité</button>
+    </div>
+    <div class="table-card" style="padding: 8px 18px;">
+      <div id="activityList"></div>
+      <div class="empty hidden" id="activitiesEmpty">Aucune activité enregistrée.</div>
+    </div>
+  </section>
+
+  <!-- ================= FICHE CONTACT ================= -->
+  <section id="view-contact-detail" class="hidden">
+    <div class="topbar">
+      <button class="btn" onclick="showView('contacts')">← Retour</button>
+      <h1 id="detailTitle" style="margin-left:4px;"></h1>
+      <button class="btn" onclick="openContactModal(detailContactId)">✏ Modifier</button>
+      <button class="btn primary" onclick="openActivityModal(null, detailContactId)">+ Activité</button>
+      <button class="btn primary" onclick="openTaskModal(null, detailContactId)">+ Tâche</button>
+    </div>
+    <div class="panel" style="margin-bottom:18px;">
+      <div class="contact-card-header">
+        <div class="avatar" id="detailAvatar"></div>
+        <div>
+          <div id="detailInfo"></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="panel">
+        <h2>✅ Tâches</h2>
+        <div id="detailTasks"></div>
+      </div>
+      <div class="panel">
+        <h2>📞 Historique</h2>
+        <div id="detailActivities"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ================= MODALE CONTACT ================= -->
+<div class="modal-overlay" id="contactModal">
+  <div class="modal">
+    <h2 id="contactModalTitle">Nouveau contact</h2>
+    <div class="form-grid">
+      <div class="field full"><label>Nom *</label><input type="text" id="f-nom"></div>
+      <div class="field"><label>Entreprise</label><input type="text" id="f-entreprise"></div>
+      <div class="field"><label>Fonction</label><input type="text" id="f-fonction"></div>
+      <div class="field"><label>Email</label><input type="email" id="f-email"></div>
+      <div class="field"><label>Téléphone</label><input type="tel" id="f-telephone"></div>
+      <div class="field full"><label>Statut</label>
+        <select id="f-statut">
+          <option>Prospect</option>
+          <option>Client</option>
+          <option>Inactif</option>
+        </select>
+      </div>
+      <div class="field full"><label>Notes</label><textarea id="f-notes" rows="3"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger left hidden" id="contactDeleteBtn" onclick="deleteContact()">Supprimer</button>
+      <button class="btn" onclick="closeModals()">Annuler</button>
+      <button class="btn primary" onclick="saveContact()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODALE TACHE ================= -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <h2 id="taskModalTitle">Nouvelle tâche</h2>
+    <div class="form-grid">
+      <div class="field full"><label>Intitulé *</label><input type="text" id="t-titre"></div>
+      <div class="field"><label>Contact lié</label><select id="t-contact"><option value="">— Aucun —</option></select></div>
+      <div class="field"><label>Échéance</label><input type="date" id="t-echeance"></div>
+      <div class="field"><label>Priorité</label>
+        <select id="t-priorite">
+          <option>Basse</option>
+          <option selected>Moyenne</option>
+          <option>Haute</option>
+        </select>
+      </div>
+      <div class="field"><label>Statut</label>
+        <select id="t-statut">
+          <option>À faire</option>
+          <option>En cours</option>
+          <option>Terminée</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger left hidden" id="taskDeleteBtn" onclick="deleteTask()">Supprimer</button>
+      <button class="btn" onclick="closeModals()">Annuler</button>
+      <button class="btn primary" onclick="saveTask()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODALE ACTIVITE ================= -->
+<div class="modal-overlay" id="activityModal">
+  <div class="modal">
+    <h2>Nouvelle activité</h2>
+    <div class="form-grid">
+      <div class="field"><label>Type</label>
+        <select id="a-type">
+          <option>Appel</option>
+          <option>Email</option>
+          <option>Réunion</option>
+          <option>Note</option>
+        </select>
+      </div>
+      <div class="field"><label>Date</label><input type="date" id="a-date"></div>
+      <div class="field full"><label>Contact</label><select id="a-contact"><option value="">— Aucun —</option></select></div>
+      <div class="field full"><label>Description *</label><textarea id="a-description" rows="4" placeholder="Résumé de l'échange…"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModals()">Annuler</button>
+      <button class="btn primary" onclick="saveActivity()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= ÉTAT & PERSISTANCE ================= */
+const STORE_KEY = "mini_crm_data_v1";
+let state = load();
+let detailContactId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      return { contacts: d.contacts || [], tasks: d.tasks || [], activities: d.activities || [] };
+    }
+  } catch (e) {}
+  return { contacts: [], tasks: [], activities: [] };
+}
+
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+function fmtDate(d) {
+  if (!d) return "—";
+  const [y, m, day] = d.split("-");
+  return `${day}/${m}/${y}`;
+}
+
+function contactName(id) {
+  const c = state.contacts.find(c => c.id === id);
+  return c ? c.nom : "—";
+}
+
+/* ================= NAVIGATION ================= */
+function showView(name) {
+  document.querySelectorAll("main > section").forEach(s => s.classList.add("hidden"));
+  document.getElementById("view-" + name).classList.remove("hidden");
+  document.querySelectorAll(".nav-btn").forEach(b =>
+    b.classList.toggle("active", b.dataset.view === (name === "contact-detail" ? "contacts" : name))
+  );
+  if (name === "dashboard") renderDashboard();
+  if (name === "contacts") renderContacts();
+  if (name === "tasks") renderTasks();
+  if (name === "activities") renderActivities();
+}
+
+document.querySelectorAll(".nav-btn").forEach(b =>
+  b.addEventListener("click", () => showView(b.dataset.view))
+);
+
+/* ================= DASHBOARD ================= */
+function renderDashboard() {
+  const overdue = state.tasks.filter(t => t.statut !== "Terminée" && t.echeance && t.echeance < todayStr());
+  const dueToday = state.tasks.filter(t => t.statut !== "Terminée" && t.echeance === todayStr());
+  const openTasks = state.tasks.filter(t => t.statut !== "Terminée");
+  const clients = state.contacts.filter(c => c.statut === "Client").length;
+
+  document.getElementById("statsRow").innerHTML = `
+    <div class="stat-card"><div class="num">${state.contacts.length}</div><div class="lbl">Contacts</div></div>
+    <div class="stat-card green"><div class="num">${clients}</div><div class="lbl">Clients</div></div>
+    <div class="stat-card"><div class="num">${openTasks.length}</div><div class="lbl">Tâches ouvertes</div></div>
+    <div class="stat-card red"><div class="num">${overdue.length}</div><div class="lbl">En retard</div></div>
+    <div class="stat-card"><div class="num">${dueToday.length}</div><div class="lbl">Échéance aujourd'hui</div></div>
+  `;
+
+  const badge = document.getElementById("taskBadge");
+  const urgent = overdue.length + dueToday.length;
+  badge.style.display = urgent ? "inline-block" : "none";
+  badge.textContent = urgent;
+
+  const upcoming = openTasks
+    .filter(t => t.echeance)
+    .sort((a, b) => a.echeance.localeCompare(b.echeance))
+    .slice(0, 8);
+
+  document.getElementById("upcomingTasks").innerHTML = upcoming.length
+    ? upcoming.map(taskRowMini).join("")
+    : `<div class="empty">Rien à venir 🎉</div>`;
+
+  const recent = [...state.activities].sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, 8);
+  document.getElementById("recentActivities").innerHTML = recent.length
+    ? recent.map(activityItem).join("")
+    : `<div class="empty">Aucune activité enregistrée.</div>`;
+}
+
+function taskRowMini(t) {
+  const late = t.echeance < todayStr();
+  const isToday = t.echeance === todayStr();
+  return `<div class="act-item">
+    <div class="act-icon">${t.priorite === "Haute" ? "🔴" : t.priorite === "Moyenne" ? "🟠" : "⚪"}</div>
+    <div style="flex:1;">
+      <div>${esc(t.titre)} ${t.contactId ? `<span style="color:var(--muted);font-size:12px;">— ${esc(contactName(t.contactId))}</span>` : ""}</div>
+      <div class="act-meta">Échéance : ${fmtDate(t.echeance)}
+        ${late ? ' <span class="tag late">En retard</span>' : isToday ? ' <span class="tag today">Aujourd\'hui</span>' : ""}
+      </div>
+    </div>
+    <button class="btn small" onclick="completeTask('${t.id}')">✔ Fait</button>
+  </div>`;
+}
+
+function activityItem(a) {
+  const icons = { "Appel": "📞", "Email": "✉️", "Réunion": "🤝", "Note": "📝" };
+  return `<div class="act-item">
+    <div class="act-icon">${icons[a.type] || "📝"}</div>
+    <div style="flex:1;">
+      <div>${esc(a.description)}</div>
+      <div class="act-meta">${esc(a.type)} · ${fmtDate(a.date)}${a.contactId ? " · " + esc(contactName(a.contactId)) : ""}</div>
+    </div>
+  </div>`;
+}
+
+/* ================= CONTACTS ================= */
+function renderContacts() {
+  const q = (document.getElementById("contactSearch").value || "").toLowerCase();
+  const st = document.getElementById("contactStatusFilter").value;
+  const list = state.contacts
+    .filter(c => !st || c.statut === st)
+    .filter(c =>
+      !q || [c.nom, c.entreprise, c.fonction, c.email, c.telephone]
+        .some(v => (v || "").toLowerCase().includes(q))
+    )
+    .sort((a, b) => a.nom.localeCompare(b.nom, "fr"));
+
+  const tb = document.getElementById("contactRows");
+  tb.innerHTML = list.map(c => `
+    <tr class="clickable" onclick="openContactDetail('${c.id}')">
+      <td><strong>${esc(c.nom)}</strong></td>
+      <td>${esc(c.entreprise)}</td>
+      <td>${esc(c.fonction)}</td>
+      <td>${c.email ? `<a href="mailto:${esc(c.email)}" onclick="event.stopPropagation()">${esc(c.email)}</a>` : "—"}</td>
+      <td>${c.telephone ? `<a href="tel:${esc(c.telephone)}" onclick="event.stopPropagation()">${esc(c.telephone)}</a>` : "—"}</td>
+      <td><span class="tag ${c.statut.toLowerCase()}">${esc(c.statut)}</span></td>
+      <td><button class="btn small" onclick="event.stopPropagation();openContactModal('${c.id}')">✏</button></td>
+    </tr>`).join("");
+
+  document.getElementById("contactsEmpty").classList.toggle("hidden", list.length > 0);
+}
+
+function openContactModal(id) {
+  const c = id ? state.contacts.find(x => x.id === id) : null;
+  document.getElementById("contactModalTitle").textContent = c ? "Modifier le contact" : "Nouveau contact";
+  document.getElementById("f-nom").value = c ? c.nom : "";
+  document.getElementById("f-entreprise").value = c ? c.entreprise : "";
+  document.getElementById("f-fonction").value = c ? c.fonction : "";
+  document.getElementById("f-email").value = c ? c.email : "";
+  document.getElementById("f-telephone").value = c ? c.telephone : "";
+  document.getElementById("f-statut").value = c ? c.statut : "Prospect";
+  document.getElementById("f-notes").value = c ? c.notes : "";
+  document.getElementById("contactDeleteBtn").classList.toggle("hidden", !c);
+  document.getElementById("contactModal").dataset.id = id || "";
+  document.getElementById("contactModal").classList.add("open");
+}
+
+function saveContact() {
+  const nom = document.getElementById("f-nom").value.trim();
+  if (!nom) { alert("Le nom est obligatoire."); return; }
+  const id = document.getElementById("contactModal").dataset.id;
+  const data = {
+    nom,
+    entreprise: document.getElementById("f-entreprise").value.trim(),
+    fonction: document.getElementById("f-fonction").value.trim(),
+    email: document.getElementById("f-email").value.trim(),
+    telephone: document.getElementById("f-telephone").value.trim(),
+    statut: document.getElementById("f-statut").value,
+    notes: document.getElementById("f-notes").value.trim()
+  };
+  if (id) {
+    Object.assign(state.contacts.find(c => c.id === id), data);
+  } else {
+    state.contacts.push({ id: uid(), createdAt: new Date().toISOString(), ...data });
+  }
+  save();
+  closeModals();
+  showView(document.getElementById("view-contact-detail").classList.contains("hidden") ? "contacts" : "contact-detail");
+}
+
+function deleteContact() {
+  const id = document.getElementById("contactModal").dataset.id;
+  if (!confirm("Supprimer ce contact ainsi que ses tâches et activités liées ?")) return;
+  state.contacts = state.contacts.filter(c => c.id !== id);
+  state.tasks = state.tasks.filter(t => t.contactId !== id);
+  state.activities = state.activities.filter(a => a.contactId !== id);
+  save();
+  closeModals();
+  showView("contacts");
+}
+
+function openContactDetail(id) {
+  detailContactId = id;
+  const c = state.contacts.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById("detailTitle").textContent = c.nom;
+  document.getElementById("detailAvatar").textContent = c.nom.slice(0, 1).toUpperCase();
+  document.getElementById("detailInfo").innerHTML = `
+    <div class="info-row"><span class="lbl">Entreprise</span> ${esc(c.entreprise) || "—"}</div>
+    <div class="info-row"><span class="lbl">Fonction</span> ${esc(c.fonction) || "—"}</div>
+    <div class="info-row"><span class="lbl">Email</span> ${esc(c.email) || "—"}</div>
+    <div class="info-row"><span class="lbl">Téléphone</span> ${esc(c.telephone) || "—"}</div>
+    <div class="info-row"><span class="lbl">Statut</span> <span class="tag ${c.statut.toLowerCase()}">${esc(c.statut)}</span></div>
+    ${c.notes ? `<div class="info-row" style="margin-top:10px;"><span class="lbl">Notes</span> ${esc(c.notes).replace(/\n/g, "<br>")}</div>` : ""}
+  `;
+
+  const tasks = state.tasks.filter(t => t.contactId === id).sort((a, b) => (a.echeance || "9999").localeCompare(b.echeance || "9999"));
+  document.getElementById("detailTasks").innerHTML = tasks.length
+    ? taskRowMiniDetail(tasks)
+    : `<div class="empty">Aucune tâche pour ce contact.</div>`;
+
+  const acts = state.activities.filter(a => a.contactId === id).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  document.getElementById("detailActivities").innerHTML = acts.length
+    ? acts.map(activityItem).join("")
+    : `<div class="empty">Aucune activité pour ce contact.</div>`;
+
+  showView("contact-detail");
+}
+
+function taskRowMiniDetail(tasks) {
+  const cls = { "À faire": "todo", "En cours": "doing", "Terminée": "done" };
+  return tasks.map(t => `<div class="act-item">
+    <div class="act-icon">${t.statut === "Terminée" ? "✔" : "⏳"}</div>
+    <div style="flex:1;">
+      <div style="${t.statut === "Terminée" ? "text-decoration:line-through;color:var(--muted);" : ""}">${esc(t.titre)}</div>
+      <div class="act-meta">
+        <span class="tag ${cls[t.statut]}">${esc(t.statut)}</span>
+        <span class="tag p-${t.priorite.toLowerCase()}">${esc(t.priorite)}</span>
+        Échéance : ${fmtDate(t.echeance)}
+      </div>
+    </div>
+    <button class="btn small" onclick="toggleTaskStatus('${t.id}')">⇄</button>
+  </div>`).join("");
+}
+
+function toggleTaskStatus(t) {
+  const order = ["À faire", "En cours", "Terminée"];
+  const task = state.tasks.find(x => x.id === t);
+  const i = order.indexOf(task.statut);
+  task.statut = order[(i + 1) % 3];
+  save();
+  refreshCurrentView();
+}
+
+function completeTask(id) {
+  const t = state.tasks.find(x => x.id === id);
+  t.statut = "Terminée";
+  save();
+  refreshCurrentView();
+}
+
+/* ================= TACHES ================= */
+function renderTasks() {
+  const q = (document.getElementById("taskSearch").value || "").toLowerCase();
+  const st = document.getElementById("taskStatusFilter").value;
+  const showDone = document.getElementById("showDone").checked;
+
+  const list = state.tasks
+    .filter(t => !st || t.statut === st)
+    .filter(t => showDone || t.statut !== "Terminée")
+    .filter(t => !q || t.titre.toLowerCase().includes(q) || contactName(t.contactId).toLowerCase().includes(q))
+    .sort((a, b) =>
+      (a.statut === "Terminée") - (b.statut === "Terminée") ||
+      (a.echeance || "9999").localeCompare(b.echeance || "9999")
+    );
+
+  const cls = { "À faire": "todo", "En cours": "doing", "Terminée": "done" };
+  const tb = document.getElementById("taskRows");
+  tb.innerHTML = list.map(t => {
+    const late = t.statut !== "Terminée" && t.echeance && t.echeance < todayStr();
+    return `<tr>
+      <td><strong>${esc(t.titre)}</strong>${late ? ' <span class="tag late">Retard</span>' : ""}</td>
+      <td>${esc(t.contactId ? contactName(t.contactId) : "—")}</td>
+      <td>${fmtDate(t.echeance)}</td>
+      <td><span class="tag p-${t.priorite.toLowerCase()}">${esc(t.priorite)}</span></td>
+      <td><span class="tag ${cls[t.statut]}">${esc(t.statut)}</span></td>
+      <td style="white-space:nowrap;">
+        <button class="btn small" title="Changer le statut" onclick="toggleTaskStatus('${t.id}')">⇄</button>
+        <button class="btn small" title="Modifier" onclick="openTaskModal('${t.id}')">✏</button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("tasksEmpty").classList.toggle("hidden", list.length > 0);
+}
+
+function fillContactSelect(selId, selected) {
+  const sel = document.getElementById(selId);
+  sel.innerHTML = '<option value="">— Aucun —</option>' +
+    [...state.contacts].sort((a, b) => a.nom.localeCompare(b.nom, "fr"))
+      .map(c => `<option value="${c.id}" ${c.id === selected ? "selected" : ""}>${esc(c.nom)}</option>`).join("");
+}
+
+function openTaskModal(id, presetContact) {
+  const t = id ? state.tasks.find(x => x.id === id) : null;
+  document.getElementById("taskModalTitle").textContent = t ? "Modifier la tâche" : "Nouvelle tâche";
+  fillContactSelect("t-contact", t ? t.contactId : (presetContact || ""));
+  document.getElementById("t-titre").value = t ? t.titre : "";
+  document.getElementById("t-echeance").value = t ? t.echeance : "";
+  document.getElementById("t-priorite").value = t ? t.priorite : "Moyenne";
+  document.getElementById("t-statut").value = t ? t.statut : "À faire";
+  document.getElementById("taskDeleteBtn").classList.toggle("hidden", !t);
+  document.getElementById("taskModal").dataset.id = id || "";
+  document.getElementById("taskModal").classList.add("open");
+}
+
+function saveTask() {
+  const titre = document.getElementById("t-titre").value.trim();
+  if (!titre) { alert("L'intitulé est obligatoire."); return; }
+  const id = document.getElementById("taskModal").dataset.id;
+  const data = {
+    titre,
+    contactId: document.getElementById("t-contact").value,
+    echeance: document.getElementById("t-echeance").value,
+    priorite: document.getElementById("t-priorite").value,
+    statut: document.getElementById("t-statut").value
+  };
+  if (id) {
+    Object.assign(state.tasks.find(t => t.id === id), data);
+  } else {
+    state.tasks.push({ id: uid(), createdAt: new Date().toISOString(), ...data });
+  }
+  save();
+  closeModals();
+  refreshCurrentView();
+}
+
+function deleteTask() {
+  const id = document.getElementById("taskModal").dataset.id;
+  if (!confirm("Supprimer cette tâche ?")) return;
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  save();
+  closeModals();
+  refreshCurrentView();
+}
+
+/* ================= ACTIVITES ================= */
+function renderActivities() {
+  const list = [...state.activities].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  document.getElementById("activityList").innerHTML = list.map(activityItem).join("");
+  document.getElementById("activitiesEmpty").classList.toggle("hidden", list.length > 0);
+}
+
+function openActivityModal(id, presetContact) {
+  fillContactSelect("a-contact", presetContact || "");
+  document.getElementById("a-date").value = todayStr();
+  document.getElementById("a-type").value = "Appel";
+  document.getElementById("a-description").value = "";
+  document.getElementById("activityModal").classList.add("open");
+}
+
+function saveActivity() {
+  const description = document.getElementById("a-description").value.trim();
+  if (!description) { alert("La description est obligatoire."); return; }
+  state.activities.push({
+    id: uid(),
+    type: document.getElementById("a-type").value,
+    date: document.getElementById("a-date").value,
+    contactId: document.getElementById("a-contact").value,
+    description,
+    createdAt: new Date().toISOString()
+  });
+  save();
+  closeModals();
+  refreshCurrentView();
+}
+
+/* ================= EXPORT / IMPORT ================= */
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `sauvegarde-crm-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!Array.isArray(d.contacts)) throw new Error();
+      state = { contacts: d.contacts || [], tasks: d.tasks || [], activities: d.activities || [] };
+      save();
+      refreshCurrentView();
+      alert("Import réussi ✔");
+    } catch (err) {
+      alert("Fichier invalide : import annulé.");
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = "";
+}
+
+/* ================= DIVERS ================= */
+function closeModals() {
+  document.querySelectorAll(".modal-overlay").forEach(m => m.classList.remove("open"));
+}
+document.querySelectorAll(".modal-overlay").forEach(m =>
+  m.addEventListener("click", e => { if (e.target === m) closeModals(); })
+);
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModals(); });
+
+function refreshCurrentView() {
+  const visible = [...document.querySelectorAll("main > section")].find(s => !s.classList.contains("hidden"));
+  if (visible.id === "view-contact-detail") openContactDetail(detailContactId);
+  else showView(visible.id.replace("view-", ""));
+}
+
+showView("dashboard");
+</script>
+</body>
+</html>
