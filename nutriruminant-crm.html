@@ -837,7 +837,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                 <div>
                     <h1 id="lock-title" class="font-bold text-slate-900 text-lg">CRM verrouillé</h1>
                     <p id="lock-sub" class="text-sm text-slate-500 mt-1">Saisissez votre mot de passe pour continuer.</p>
-                    <p class="text-[11px] font-semibold text-sage-600 uppercase tracking-wider mt-1">Version 4 · 100 % hors ligne</p>
+                    <p class="text-[11px] font-semibold text-sage-600 uppercase tracking-wider mt-1">Version 5 · 100 % hors ligne</p>
                 </div>
             </div>
             <div><label class="label">Mot de passe</label><input type="password" id="lock-pw" required autocomplete="current-password" class="field"></div>
@@ -1031,7 +1031,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
             $('lock-forgot').classList.toggle('hidden', setup);
             $('lock-btn-label').innerText = setup ? 'Créer et ouvrir le CRM' : 'Déverrouiller';
             lockError('');
-            $('lock-screen').classList.remove('hidden');
+            $('lock-screen').classList.remove('hidden'); $('lock-screen').style.display = '';
             icons();
             setTimeout(() => $('lock-pw').focus(), 50);
         }
@@ -1073,7 +1073,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         }
 
         function enterApp() {
-            $('lock-screen').classList.add('hidden');
+            $('lock-screen').classList.add('hidden'); $('lock-screen').style.display = 'none';
             ['lock-pw', 'lock-pw2'].forEach(i => $(i).value = '');
             if (!chartGamme) initCharts();
             refreshAll();
@@ -1165,10 +1165,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         function switchTab(tab) {
             try {
                 currentTab = tab;
-                document.querySelectorAll('.view').forEach(s => s.classList.add('hidden'));
-                $('view-' + tab).classList.remove('hidden');
+                document.querySelectorAll('.view').forEach(s => { s.classList.add('hidden'); s.style.display = 'none'; });
+                const target = $('view-' + tab);
+                target.classList.remove('hidden');
+                target.style.display = '';
                 const navId = tab === 'client-detail' ? 'clients' : tab;
                 document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('is-active', b.id === 'nav-' + navId));
+                const vis = [...document.querySelectorAll('.view')].filter(v => !v.classList.contains('hidden'));
+                if (vis.length !== 1 || vis[0] !== target) crmShowRuntimeError('etat incoherent: ' + vis.length + ' vue(s) visible(s): ' + vis.map(v => v.id).join(', '));
                 if (tab === 'dashboard') { safeRun(updateCharts, 'updateCharts'); safeRun(renderTopClientsTable, 'renderTopClientsTable'); safeRun(renderDashTasks, 'renderDashTasks'); }
                 else if (tab === 'clients') safeRun(renderClients, 'renderClients');
                 else if (tab === 'visits') { safeRun(renderMeetings, 'renderMeetings'); safeRun(renderVisitsGlobalList, 'renderVisitsGlobalList'); }
