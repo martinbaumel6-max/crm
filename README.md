@@ -1,7 +1,9 @@
 # NutriRuminant CRM (100 % local)
 
-CRM Commercial B2B en **un seul fichier HTML**, sans serveur ni installation — données chiffrées
-et enregistrées dans le navigateur.
+CRM Commercial B2B en **un seul fichier HTML**, sans serveur ni installation — toutes les
+librairies (Tailwind CSS, Chart.js, icônes Lucide, lecteur Excel SheetJS) sont **embarquées dans
+le fichier** : il fonctionne **100 % hors ligne**, sans aucune connexion internet. Les données
+sont chiffrées et enregistrées dans le navigateur.
 
 ## Fichiers
 
@@ -32,6 +34,6 @@ et enregistrées dans le navigateur.
 depuis un autre navigateur ou un autre emplacement, elles n'apparaîtront pas (serialize une
 sauvegarde JSON pour migrer).
 
-⚠️ Les librairies (Tailwind, Chart.js, icônes, lecteur Excel) sont chargées depuis des CDN : une
-connexion internet est nécessaire au chargement de l'interface (les données, elles, restent
-100 % locales et chiffrées).
+✅ **Aucune connexion internet requise** : le fichier est totalement autonome (librairies
+v3.4.16 / Chart.js 4.4.7 / Lucide 0.468.0 / SheetJS 0.18.5 embarquées, ~1,6 Mo). Tu peux le
+copier sur une clé USB, l'envoyer par mail ou l'utiliser en avion.
