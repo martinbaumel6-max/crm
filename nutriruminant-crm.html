@@ -28,7 +28,28 @@
         .kanban-card.is-dragging { opacity: .35; }
         .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; background: #f1f5f9; border: 1px solid #e2e8f0; padding: .05rem .35rem; border-radius: .3rem; color: #334155; }
     </style>
-<script>/* Chart.js 4.4.7 (licence MIT) - embarque pour un usage 100% hors ligne */
+<script>
+        window.__crmErrors = [];
+        function crmShowRuntimeError(msg) {
+            try {
+                var b = document.getElementById('err-banner'); if (!b) return;
+                b.classList.remove('hidden'); b.style.display = 'flex';
+                var m = document.getElementById('err-msg');
+                var t = String(msg == null ? 'inconnue' : msg);
+                if (m && m.textContent.indexOf(t) === -1) m.textContent = (m.textContent ? m.textContent + ' | ' : '') + t.slice(0, 400);
+            } catch (e2) {}
+        }
+        window.addEventListener('error', function (e) {
+            var m = e && e.message ? e.message + ' (ligne ' + e.lineno + ')' : (e && e.target && (e.target.tagName || '') ? 'resource: ' + (e.target.src || '') : 'erreur inconnue');
+            window.__crmErrors.push(String(m)); crmShowRuntimeError(m);
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+            var r = e && e.reason; var m = r && (r.message || String(r)) || 'erreur de promesse';
+            window.__crmErrors.push(String(m)); crmShowRuntimeError('Promesse: ' + m);
+        });
+        </script>
+<script>
+/* Chart.js 4.4.7 (licence MIT) - embarque pour un usage 100% hors ligne */
 /*!
  * Chart.js v4.4.7
  * https://www.chartjs.org
@@ -87,6 +108,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 </script>
 </head>
 <body class="h-full flex overflow-hidden text-slate-800 bg-slate-50">
+<div id="err-banner" class="hidden" style="display:none;position:fixed;top:0;left:0;right:0;z-index:150;background:#e11d48;color:#fff;font-size:12px;padding:8px 16px;align-items:center;gap:12px;box-shadow:0 10px 15px -3px rgba(0,0,0,.2)"><span style="font-weight:600;flex-shrink:0">Erreur détectée :</span><span id="err-msg" style="flex:1;word-break:break-all"></span><button type="button" id="err-copy" style="text-decoration:underline;flex-shrink:0;background:none;border:0;color:#fff;cursor:pointer">Copier le diagnostic</button><button type="button" onclick="this.parentElement.classList.add('hidden');this.parentElement.style.display='none'" style="flex-shrink:0;font-weight:700;padding:0 8px;background:none;border:0;color:#fff;cursor:pointer">✕</button></div>
 
     <!-- SIDEBAR -->
     <aside class="w-64 bg-sage-50 text-slate-600 flex flex-col shrink-0 shadow-xl z-20 border-r border-sage-100">
@@ -1127,20 +1149,35 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         const isLate = t => isOpen(t) && t.due && t.due < localISO();
 
         /* ============================== NAVIGATION ============================== */
+        function safeRun(fn, label) {
+            try { fn(); } catch (e) { console.error(e); crmShowRuntimeError((e && e.message || e) + ' dans ' + label); }
+        }
+
+        function bindNavFallback() {
+            document.querySelectorAll('.nav-item').forEach(b => {
+                if (b.__navBound) return;
+                b.__navBound = true;
+                const m = (b.getAttribute('onclick') || '').match(/switchTab\('([^']+)'\)/);
+                if (m) b.addEventListener('click', ev => { ev.preventDefault(); try { switchTab(m[1]); } catch (e) { console.error(e); } });
+            });
+        }
+
         function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.view').forEach(s => s.classList.add('hidden'));
-            $('view-' + tab).classList.remove('hidden');
-            const navId = tab === 'client-detail' ? 'clients' : tab;
-            document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('is-active', b.id === 'nav-' + navId));
-            if (tab === 'dashboard') { updateCharts(); renderTopClientsTable(); renderDashTasks(); }
-            else if (tab === 'clients') renderClients();
-            else if (tab === 'visits') { renderMeetings(); renderVisitsGlobalList(); }
-            else if (tab === 'catalog') renderCatalog();
-            else if (tab === 'tasks') renderKanban();
-            else if (tab === 'ops') renderOps();
-            $('scroll-area').scrollTop = 0;
-            icons();
+            try {
+                currentTab = tab;
+                document.querySelectorAll('.view').forEach(s => s.classList.add('hidden'));
+                $('view-' + tab).classList.remove('hidden');
+                const navId = tab === 'client-detail' ? 'clients' : tab;
+                document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('is-active', b.id === 'nav-' + navId));
+                if (tab === 'dashboard') { safeRun(updateCharts, 'updateCharts'); safeRun(renderTopClientsTable, 'renderTopClientsTable'); safeRun(renderDashTasks, 'renderDashTasks'); }
+                else if (tab === 'clients') safeRun(renderClients, 'renderClients');
+                else if (tab === 'visits') { safeRun(renderMeetings, 'renderMeetings'); safeRun(renderVisitsGlobalList, 'renderVisitsGlobalList'); }
+                else if (tab === 'catalog') safeRun(renderCatalog, 'renderCatalog');
+                else if (tab === 'tasks') safeRun(renderKanban, 'renderKanban');
+                else if (tab === 'ops') safeRun(renderOps, 'renderOps');
+                $('scroll-area').scrollTop = 0;
+                icons();
+            } catch (e) { console.error(e); crmShowRuntimeError((e && e.message || e) + ' dans switchTab(' + tab + ')'); }
         }
 
         function refreshAll() {
@@ -2111,6 +2148,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
         /* ============================== DEMARRAGE ============================== */
         document.addEventListener('DOMContentLoaded', () => {
+            bindNavFallback();
+            const ec = document.getElementById('err-copy');
+            if (ec) ec.addEventListener('click', () => {
+                const txt = navigator.userAgent + '\n' + (window.__crmErrors || []).join('\n');
+                if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(() => {});
+                else { try { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); } catch (e) {} }
+            });
             initKanban();
             initOps();
             bindDropzone('dz-catalog', 'file-catalog', 'catalog');
