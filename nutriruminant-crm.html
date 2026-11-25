@@ -1,0 +1,2083 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriRuminant CRM - Solution Commerciale B2B</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sage: { 50: '#f4f7f4', 100: '#e3ebe3', 200: '#c7d7c7', 400: '#8fb090', 500: '#5a825b', 600: '#466747', 700: '#385239', 800: '#2d412e', 900: '#253626' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .field { width: 100%; padding: .5rem .875rem; border: 1px solid #e2e8f0; border-radius: .5rem; font-size: .875rem; background: #fff; outline: none; transition: box-shadow .15s, border-color .15s; }
+        .field:focus { border-color: #5a825b; box-shadow: 0 0 0 3px rgba(90,130,91,.15); }
+        .label { display: block; font-size: .7rem; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .25rem; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .5rem 1rem; border-radius: .5rem; font-size: .875rem; font-weight: 500; transition: background .15s, border-color .15s; cursor: pointer; }
+        .btn-primary { background: #466747; color: #fff; }
+        .btn-primary:hover { background: #385239; }
+        .btn-secondary { background: #fff; color: #475569; border: 1px solid #e2e8f0; }
+        .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .btn-danger { background: #fff1f2; color: #be123c; }
+        .btn-danger:hover { background: #ffe4e6; }
+        .nav-item.is-active { background: #466747 !important; color: #fff !important; }
+        .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem; padding: 1.5rem 1rem; border: 1.5px dashed #cbd5e1; border-radius: .75rem; background: #f8fafc; cursor: pointer; text-align: center; transition: all .15s; }
+        .dropzone:hover, .dropzone.is-over { border-color: #5a825b; background: #f4f7f4; }
+        .kanban-zone.is-over { background: rgba(90,130,91,.08); border-radius: .75rem; }
+        .kanban-card.is-dragging { opacity: .35; }
+        .code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .7rem; background: #f1f5f9; border: 1px solid #e2e8f0; padding: .05rem .35rem; border-radius: .3rem; color: #334155; }
+    </style>
+</head>
+<body class="h-full flex overflow-hidden text-slate-800 bg-slate-50">
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 shadow-xl z-20">
+        <div class="p-5 flex items-center gap-3 border-b border-slate-800 bg-slate-950/40">
+            <div class="bg-sage-600 p-2.5 rounded-xl text-white shadow-lg shadow-sage-900/50 flex items-center justify-center">
+                <i data-lucide="sprout" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-white tracking-wide text-lg">NutriRuminant</h1>
+                <p class="text-xs text-sage-400 font-medium">CRM Commercial B2B</p>
+            </div>
+        </div>
+
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto custom-scrollbar">
+            <div class="px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Général</div>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item is-active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Tableau de Bord
+            </button>
+            <button onclick="switchTab('clients')" id="nav-clients" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <i data-lucide="building-2" class="w-4 h-4"></i> Comptes Clients
+            </button>
+            <button onclick="switchTab('tasks')" id="nav-tasks" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <i data-lucide="kanban" class="w-4 h-4"></i> <span class="flex-1 text-left">Tâches (Kanban)</span>
+                <span id="nav-task-count" class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="switchTab('visits')" id="nav-visits" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <i data-lucide="clipboard-list" class="w-4 h-4"></i> <span class="flex-1 text-left">Suivi des Visites</span>
+                <span id="nav-meeting-count" class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="switchTab('ops')" id="nav-ops" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <i data-lucide="target" class="w-4 h-4"></i> <span class="flex-1 text-left">Opportunités</span>
+                <span id="nav-ops-count" class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="switchTab('catalog')" id="nav-catalog" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <i data-lucide="package" class="w-4 h-4"></i> Catalogue & Gammes
+            </button>
+            <button onclick="switchTab('io')" id="nav-io" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+                <i data-lucide="arrow-down-up" class="w-4 h-4"></i> Import / Export
+            </button>
+
+            <div class="pt-4 px-3 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">Filtres Rapides</div>
+            <button onclick="filterByClientType(TYPE_FAB)" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors">
+                <span class="flex items-center gap-2"><i data-lucide="factory" class="w-3.5 h-3.5 text-blue-400"></i> Fabricants</span>
+                <span id="count-fabricants" class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full text-[10px]">0</span>
+            </button>
+            <button onclick="filterByClientType(TYPE_DIST)" class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors">
+                <span class="flex items-center gap-2"><i data-lucide="store" class="w-3.5 h-3.5 text-amber-400"></i> Distributeurs</span>
+                <span id="count-distributeurs" class="bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full text-[10px]">0</span>
+            </button>
+        </nav>
+
+        <div class="p-4 border-t border-slate-800 bg-slate-950/30">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-sage-700 text-white flex items-center justify-center font-bold text-sm shadow">MB</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-white truncate">Martin Baumel</p>
+                    <p class="text-xs text-slate-400 truncate">Ingénieur commercial Ouest</p>
+                </div>
+                <div class="flex items-center gap-0.5 shrink-0">
+                    <button onclick="lockNow()" title="Verrouiller" class="text-slate-500 hover:text-white transition-colors p-1.5"><i data-lucide="lock" class="w-4 h-4"></i></button>
+                    <button onclick="openPasswordModal()" title="Changer le mot de passe" class="text-slate-500 hover:text-white transition-colors p-1.5"><i data-lucide="key-round" class="w-4 h-4"></i></button>
+                    <button onclick="resetData()" title="Tout effacer et repartir de zéro" class="text-slate-500 hover:text-rose-400 transition-colors p-1.5"><i data-lucide="rotate-ccw" class="w-4 h-4"></i></button>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <header class="bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between gap-4 z-10">
+            <div class="flex items-center gap-3 flex-1 max-w-lg">
+                <div class="relative w-full">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="global-search" oninput="handleGlobalSearch(this.value)" placeholder="Rechercher client, contact, région ou produit..." class="w-full pl-9 pr-4 py-2 bg-slate-100 hover:bg-slate-50 focus:bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sage-500 focus:border-transparent transition-all">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="openTaskModal()" class="btn btn-secondary"><i data-lucide="check-square" class="w-4 h-4"></i> Nouvelle tâche</button>
+                <button onclick="openClientModal()" class="btn btn-primary"><i data-lucide="plus" class="w-4 h-4"></i> Nouveau client</button>
+            </div>
+        </header>
+
+        <div id="scroll-area" class="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50">
+
+            <!-- DASHBOARD -->
+            <section id="view-dashboard" class="view space-y-6">
+                <div class="border-b border-slate-200 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Tableau de Bord Commercial</h2>
+                        <p class="text-sm text-slate-500">Vue globale des performances et volumes sur le marché Ruminants</p>
+                    </div>
+                    <div class="shrink-0"><label class="label">Année analysée</label><select id="dash-year" onchange="onDashYearChange()" class="field !w-auto text-sm"></select></div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Volume Vendu</p>
+                            <p id="kpi-total-volume" class="text-2xl font-bold text-slate-900 mt-1">0 T</p>
+                            <p id="kpi-volume-sub" class="text-xs text-slate-500 mt-1">Toutes années</p>
+                        </div>
+                        <div class="p-3 bg-sage-50 text-sage-600 rounded-xl border border-sage-100"><i data-lucide="scale" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pipeline</p>
+                            <p id="kpi-pipeline" class="text-2xl font-bold text-slate-900 mt-1">0 T</p>
+                            <p id="kpi-pipeline-sub" class="text-xs text-slate-500 mt-1">0 opportunité(s) en cours</p>
+                        </div>
+                        <div class="p-3 bg-violet-50 text-violet-600 rounded-xl border border-violet-100"><i data-lucide="target" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">RDV À Venir</p>
+                            <p id="kpi-meetings" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+                            <p id="kpi-meetings-sub" class="text-xs text-slate-500 mt-1">visites planifiées</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl border border-blue-100"><i data-lucide="calendar-clock" class="w-6 h-6"></i></div>
+                    </div>
+                        <div class="p-3 bg-sage-50 text-sage-600 rounded-xl border border-sage-100"><i data-lucide="scale" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Portefeuille Clients</p>
+                            <p id="kpi-total-clients" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+                            <p class="text-xs text-slate-500 mt-1"><span id="kpi-count-fab" class="font-semibold text-blue-600">0 Fab.</span> | <span id="kpi-count-dist" class="font-semibold text-amber-600">0 Dist.</span></p>
+                        </div>
+                        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100"><i data-lucide="users" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tâches ouvertes</p>
+                            <p id="kpi-open-tasks" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+                            <p id="kpi-late-tasks" class="text-xs text-slate-500 mt-1">0 en retard</p>
+                        </div>
+                        <div class="p-3 bg-purple-50 text-purple-600 rounded-xl border border-purple-100"><i data-lucide="check-square" class="w-6 h-6"></i></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Gamme Phare</p>
+                            <p id="kpi-top-gamme" class="text-sm font-bold text-slate-900 mt-1 truncate max-w-[130px]">-</p>
+                        </div>
+                        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl border border-amber-100"><i data-lucide="award" class="w-6 h-6"></i></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                        <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2 mb-4"><i data-lucide="pie-chart" class="w-4 h-4 text-sage-600"></i> Répartition par Gamme</h3>
+                        <div class="flex-1 min-h-[260px] relative flex items-center justify-center"><canvas id="chart-gammes"></canvas></div>
+                    </div>
+                    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                        <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2 mb-4"><i data-lucide="bar-chart-3" class="w-4 h-4 text-blue-600"></i> Répartition par Région (Tonnes)</h3>
+                        <div class="flex-1 min-h-[260px] relative flex items-center justify-center"><canvas id="chart-regions"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                    <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div class="p-5 border-b border-slate-100">
+                            <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="trophy" class="w-4 h-4 text-amber-500"></i> Top Comptes Clients par Tonnage</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm text-slate-600">
+                                <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100">
+                                    <tr>
+                                        <th class="px-6 py-3">Entreprise</th>
+                                        <th class="px-6 py-3">Type</th>
+                                        <th class="px-6 py-3">Région</th>
+                                        <th class="px-6 py-3">Contacts</th>
+                                        <th class="px-6 py-3 text-right">Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="top-clients-tbody" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm">
+                        <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                            <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="flag" class="w-4 h-4 text-rose-500"></i> Tâches à suivre</h3>
+                            <button onclick="switchTab('tasks')" class="text-xs text-sage-600 font-semibold hover:underline">Kanban</button>
+                        </div>
+                        <div id="dash-tasks" class="p-3 space-y-1"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CLIENTS LIST -->
+            <section id="view-clients" class="view space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Comptes Clients B2B</h2>
+                        <p id="clients-count" class="text-sm text-slate-500"></p>
+                    </div>
+                    <button onclick="openClientModal()" class="btn btn-primary"><i data-lucide="plus" class="w-4 h-4"></i> Ajouter un client</button>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap gap-3 items-center justify-between">
+                    <div class="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+                        <select id="filter-type" onchange="renderClients()" class="field !w-auto">
+                            <option value="">Tous les types</option>
+                            <option value="Fabricant d'aliments">Fabricants d'aliments</option>
+                            <option value="Distributeur de produits en élevage">Distributeurs</option>
+                        </select>
+                        <select id="filter-region" onchange="renderClients()" class="field !w-auto"></select>
+                        <select id="filter-gamme" onchange="renderClients()" class="field !w-auto"></select>
+                        <select id="filter-statut" onchange="renderClients()" class="field !w-auto">
+                            <option value="">Tous les statuts</option>
+                            <option value="prospect">Prospect</option>
+                            <option value="actif">Client actif</option>
+                            <option value="dormant">Dormant</option>
+                            <option value="__none">Non défini</option>
+                        </select>
+                    </div>
+                    <button onclick="resetFilters()" class="text-xs text-slate-500 hover:text-slate-700 font-medium underline px-2 py-1">Effacer les filtres</button>
+                </div>
+                <div id="clients-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+            </section>
+
+            <!-- CLIENT DETAIL -->
+            <section id="view-client-detail" class="view space-y-6 hidden">
+                <div class="flex items-center gap-3 border-b border-slate-200 pb-4">
+                    <button onclick="switchTab('clients')" class="p-2 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h2 id="detail-client-name" class="text-2xl font-bold text-slate-900"></h2>
+                            <span id="detail-client-type" class="px-2.5 py-0.5 rounded-full text-xs font-semibold"></span>
+                            <span id="detail-client-statut" class="hidden px-2.5 py-0.5 rounded-full text-xs font-semibold"></span>
+                        </div>
+                        <p class="text-sm text-slate-500 flex items-center gap-2 mt-0.5"><i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i><span id="detail-client-region"></span></p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="editCurrentClient()" class="btn btn-secondary"><i data-lucide="edit-3" class="w-4 h-4"></i> Modifier</button>
+                        <button onclick="deleteCurrentClient()" class="btn btn-danger"><i data-lucide="trash-2" class="w-4 h-4"></i> Supprimer</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="space-y-6">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-sage-600"></i> Parties Prenantes</h3>
+                                <button onclick="openContactModal()" class="text-xs text-sage-600 font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Ajouter</button>
+                            </div>
+                            <div id="detail-stakeholders-list" class="space-y-3"></div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="check-square" class="w-4 h-4 text-purple-600"></i> Tâches liées</h3>
+                                <button onclick="openTaskModal(null, null, currentClientId)" class="text-xs text-sage-600 font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3 h-3"></i> Ajouter</button>
+                            </div>
+                            <div id="detail-tasks-list" class="space-y-1.5"></div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <h3 class="font-semibold text-slate-800 text-base mb-3 border-b border-slate-100 pb-3 flex items-center gap-2"><i data-lucide="info" class="w-4 h-4 text-slate-500"></i> Informations</h3>
+                            <div class="space-y-2.5 text-sm text-slate-600">
+                                <div><span class="text-xs text-slate-400 block uppercase font-medium">Zone d'action</span><span id="detail-client-zone" class="font-medium text-slate-800"></span></div>
+                                <div><span class="text-xs text-slate-400 block uppercase font-medium">Notes & potentiel</span><span id="detail-client-notes" class="text-xs text-slate-600 italic block mt-0.5 bg-slate-50 p-2.5 rounded-lg border border-slate-100"></span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="package-check" class="w-4 h-4 text-sage-600"></i> Ventes par Gammes et Produits</h3>
+                                <div class="text-right">
+                                    <span class="text-xs text-slate-400 block font-medium">Total</span>
+                                    <span id="detail-client-total-tonnage" class="text-xl font-bold text-sage-700">0 T</span>
+                                </div>
+                            </div>
+                            <div id="detail-products-container" class="space-y-4"></div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4 text-blue-600"></i> RDV Planifiés</h3>
+                                <button onclick="openMeetingModal(null, currentClientId)" class="text-xs bg-slate-50 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i> Planifier</button>
+                            </div>
+                            <div id="detail-meetings-list" class="space-y-2"></div>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                            <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+                                <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="message-square" class="w-4 h-4 text-blue-600"></i> Historique des Visites</h3>
+                                <button onclick="openVisitModal()" class="text-xs bg-sage-50 text-sage-700 border border-sage-200 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1"><i data-lucide="plus" class="w-3.5 h-3.5"></i> CR</button>
+                            </div>
+                            <div id="detail-visits-timeline" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KANBAN -->
+            <section id="view-tasks" class="view space-y-5 hidden">
+                <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-slate-200 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Tâches</h2>
+                        <p class="text-sm text-slate-500">Glissez les cartes entre les colonnes pour faire avancer vos actions.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select id="task-filter-priority" onchange="renderKanban()" class="field !w-auto">
+                            <option value="">Toutes priorités</option>
+                            <option value="high">Priorité haute</option>
+                            <option value="medium">Priorité moyenne</option>
+                            <option value="low">Priorité basse</option>
+                        </select>
+                        <select id="task-filter-client" onchange="renderKanban()" class="field !w-auto max-w-[200px]"></select>
+                        <select id="task-sort" onchange="renderKanban()" class="field !w-auto">
+                            <option value="manual">Ordre manuel</option>
+                            <option value="priority">Tri par priorité</option>
+                            <option value="due">Tri par échéance</option>
+                        </select>
+                        <button onclick="openTaskModal()" class="btn btn-primary"><i data-lucide="plus" class="w-4 h-4"></i> Tâche</button>
+                    </div>
+                </div>
+                <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start"></div>
+            </section>
+
+            <!-- VISITS -->
+            <section id="view-visits" class="view space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Suivi Terrain & Comptes-Rendus</h2>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openMeetingModal()" class="btn btn-secondary"><i data-lucide="calendar-plus" class="w-4 h-4"></i> Planifier un RDV</button>
+                        <button onclick="openVisitModal(true)" class="btn btn-primary"><i data-lucide="plus" class="w-4 h-4"></i> Enregistrer une visite</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm max-w-4xl mx-auto">
+                    <div class="p-5 border-b border-slate-100 flex items-center justify-between">
+                        <h3 class="font-semibold text-slate-800 text-base flex items-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4 text-blue-600"></i> Agenda des visites</h3>
+                    </div>
+                    <div id="meetings-list" class="p-4 space-y-2"></div>
+                </div>
+                <h3 class="font-semibold text-slate-800 text-base max-w-4xl mx-auto">Comptes-rendus passés</h3>
+                <div id="global-visits-list" class="space-y-3 max-w-4xl mx-auto"></div>
+            </section>
+
+            <!-- OPPORTUNITES -->
+            <section id="view-ops" class="view space-y-5 hidden">
+                <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 border-b border-slate-200 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Pipeline d'Opportunités</h2>
+                        <p class="text-sm text-slate-500">Suivez vos affaires en cours de la prospection à la signature. Glissez les cartes pour changer d'étape.</p>
+                    </div>
+                    <button onclick="openOpModal()" class="btn btn-primary"><i data-lucide="plus" class="w-4 h-4"></i> Nouvelle opportunité</button>
+                </div>
+                <div id="ops-board" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3 items-start"></div>
+            </section>
+
+            <!-- CATALOG -->
+            <section id="view-catalog" class="view space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Gestion du Catalogue</h2>
+                        <p class="text-sm text-slate-500">Gérez vos gammes et vos références produits</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="switchTab('io')" class="btn btn-secondary"><i data-lucide="upload" class="w-4 h-4"></i> Importer un fichier</button>
+                        <button onclick="openGammeModal()" class="btn btn-primary"><i data-lucide="plus" class="w-4 h-4"></i> Nouvelle gamme</button>
+                    </div>
+                </div>
+                <div id="catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 items-start"></div>
+            </section>
+
+            <!-- IMPORT / EXPORT -->
+            <section id="view-io" class="view space-y-6 hidden">
+                <div class="border-b border-slate-200 pb-4">
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Import / Export</h2>
+                    <p class="text-sm text-slate-500">Chargez vos fichiers CSV ou Excel. Un aperçu vous est présenté avant toute modification.</p>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    <!-- Catalogue -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-sage-50 text-sage-600 rounded-lg border border-sage-100"><i data-lucide="package" class="w-5 h-5"></i></div>
+                            <div>
+                                <h3 class="font-semibold text-slate-900">Importer gammes & produits</h3>
+                                <p class="text-xs text-slate-500">Une ligne = un produit rattaché à sa gamme</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600">Colonnes attendues : <span class="code">Gamme</span> <span class="code">Produit</span> <span class="code">Description</span> (optionnelle). Les gammes et produits déjà présents sont conservés, seuls les nouveaux sont ajoutés.</p>
+                        <label id="dz-catalog" class="dropzone">
+                            <input type="file" id="file-catalog" accept=".csv,.tsv,.txt,.xlsx,.xls" class="hidden">
+                            <i data-lucide="file-up" class="w-6 h-6 text-slate-400"></i>
+                            <span class="text-sm text-slate-700 font-medium">Déposez un fichier ou <span class="underline text-sage-700">parcourez</span></span>
+                            <span class="text-xs text-slate-400">CSV, XLSX, XLS</span>
+                        </label>
+                        <button onclick="exportCatalogCSV()" class="text-xs text-sage-700 font-semibold hover:underline flex items-center gap-1.5"><i data-lucide="download" class="w-3.5 h-3.5"></i> Télécharger le catalogue actuel (sert aussi de modèle)</button>
+                    </div>
+
+                    <!-- Ventes -->
+                    <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2.5 bg-blue-50 text-blue-600 rounded-lg border border-blue-100"><i data-lucide="line-chart" class="w-5 h-5"></i></div>
+                            <div>
+                                <h3 class="font-semibold text-slate-900">Importer des ventes clients</h3>
+                                <p class="text-xs text-slate-500">Une ligne = un client × un produit</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600">Colonnes attendues : <span class="code">Client</span> <span class="code">Produit</span> <span class="code">Volume (T)</span>. Optionnelles : <span class="code">Gamme</span> <span class="code">Type</span> <span class="code">Région</span> <span class="code">Zone</span> <span class="code">Année</span>. Les clients, gammes et produits inconnus sont créés ; l'Année alimente l'historique par année (année en cours si absente).</p>
+                        <div class="flex flex-col sm:flex-row gap-3 text-sm text-slate-700">
+                            <label class="flex items-center gap-2"><input type="radio" name="sales-mode" value="replace" checked class="accent-[#466747]"> Remplacer les volumes existants</label>
+                            <label class="flex items-center gap-2"><input type="radio" name="sales-mode" value="add" class="accent-[#466747]"> Ajouter aux volumes existants</label>
+                        </div>
+                        <label id="dz-sales" class="dropzone">
+                            <input type="file" id="file-sales" accept=".csv,.tsv,.txt,.xlsx,.xls" class="hidden">
+                            <i data-lucide="file-up" class="w-6 h-6 text-slate-400"></i>
+                            <span class="text-sm text-slate-700 font-medium">Déposez un fichier ou <span class="underline text-sage-700">parcourez</span></span>
+                            <span class="text-xs text-slate-400">CSV, XLSX, XLS</span>
+                        </label>
+                        <button onclick="downloadSalesTemplate()" class="text-xs text-sage-700 font-semibold hover:underline flex items-center gap-1.5"><i data-lucide="download" class="w-3.5 h-3.5"></i> Télécharger un modèle de fichier</button>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2.5 bg-slate-100 text-slate-600 rounded-lg border border-slate-200"><i data-lucide="database-backup" class="w-5 h-5"></i></div>
+                        <div>
+                            <h3 class="font-semibold text-slate-900">Export & sauvegarde</h3>
+                            <p class="text-xs text-slate-500">Vos données sont chiffrées dans ce navigateur. Les fichiers exportés (CSV, JSON) ne le sont pas : gardez-les en lieu sûr.</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="exportSalesCSV()" class="btn btn-secondary"><i data-lucide="file-spreadsheet" class="w-4 h-4"></i> Exporter les ventes (CSV)</button>
+                        <button onclick="exportBackup()" class="btn btn-secondary"><i data-lucide="download" class="w-4 h-4"></i> Sauvegarde complète (JSON)</button>
+                        <label class="btn btn-secondary">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Restaurer une sauvegarde
+                            <input type="file" id="file-backup" accept=".json" class="hidden">
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- MODAL CLIENT -->
+    <div id="modal-client" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4 overflow-y-auto">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-100 my-8 flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+                <h3 id="modal-client-title" class="font-bold text-slate-800 text-lg">Nouveau client</h3>
+                <button onclick="closeModal('modal-client')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form id="form-client" onsubmit="handleSaveClient(event)" class="p-6 overflow-y-auto space-y-6 custom-scrollbar flex-1">
+                <input type="hidden" id="client-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="label">Nom de l'entreprise *</label><input type="text" id="client-name" required class="field"></div>
+                    <div>
+                        <label class="label">Typologie *</label>
+                        <select id="client-type" required class="field">
+                            <option value="Fabricant d'aliments">Fabricant d'aliments</option>
+                            <option value="Distributeur de produits en élevage">Distributeur de produits en élevage</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Région *</label><select id="client-region" required class="field"></select></div>
+                    <div><label class="label">Zone d'action</label><input type="text" id="client-zone" class="field" placeholder="Ex : 22, 35, 56"></div>
+                </div>
+                <div><label class="label">Notes & potentiel</label><textarea id="client-notes" rows="2" class="field"></textarea></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">Statut commercial</label>
+                        <select id="client-statut" class="field">
+                            <option value="">Non défini</option>
+                            <option value="prospect">Prospect</option>
+                            <option value="actif">Client actif</option>
+                            <option value="dormant">Dormant</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Potentiel annuel (tonnes)</label><input type="number" id="client-potentiel" min="0" step="any" class="field" placeholder="Estimation du volume adressable / an"></div>
+                </div>
+                <div class="border-t border-slate-200 pt-4">
+                    <h4 class="font-semibold text-slate-800 text-sm mb-3">Volumes (tonnes)</h4>
+                    <div class="mb-3 max-w-[200px]"><label class="label">Année saisie</label><select id="sales-year" onchange="fillSalesInputs()" class="field"></select></div>
+                    <div id="form-sales-container" class="space-y-4"></div>
+                </div>
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                    <button type="button" onclick="closeModal('modal-client')" class="btn btn-secondary">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CONTACT -->
+    <div id="modal-contact" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-base">Ajouter une partie prenante</h3>
+                <button onclick="closeModal('modal-contact')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveContact(event)" class="p-6 space-y-4">
+                <div><label class="label">Nom & prénom *</label><input type="text" id="contact-name" required class="field"></div>
+                <div><label class="label">Fonction *</label><input type="text" id="contact-role" required class="field"></div>
+                <div><label class="label">Téléphone</label><input type="text" id="contact-phone" class="field"></div>
+                <div><label class="label">Email</label><input type="email" id="contact-email" class="field"></div>
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-contact')" class="btn btn-secondary">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL VISITE -->
+    <div id="modal-visit" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-base">Compte-rendu</h3>
+                <button onclick="closeModal('modal-visit')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveVisit(event)" class="p-6 space-y-4">
+                <div><label class="label">Client *</label><select id="visit-client-select" required class="field"></select></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Date *</label><input type="date" id="visit-date" required class="field"></div>
+                    <div>
+                        <label class="label">Type</label>
+                        <select id="visit-type" class="field">
+                            <option value="Visite Terrain">Visite terrain</option>
+                            <option value="Réunion Technique">Réunion technique</option>
+                            <option value="Appel Téléphonique">Appel téléphonique</option>
+                            <option value="Essai Aliment">Suivi d'essai terrain</option>
+                        </select>
+                    </div>
+                </div>
+                <div><label class="label">Interlocuteur</label><input type="text" id="visit-contact" class="field"></div>
+                <div><label class="label">Synthèse *</label><textarea id="visit-summary" rows="3" required class="field"></textarea></div>
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-visit')" class="btn btn-secondary">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL GAMME -->
+    <div id="modal-gamme" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-base">Créer une gamme</h3>
+                <button onclick="closeModal('modal-gamme')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveGamme(event)" class="p-6 space-y-4">
+                <div><label class="label">Nom de la gamme *</label><input type="text" id="gamme-name" required class="field" placeholder="Ex : Spécialités Tarissement"></div>
+                <div><label class="label">Description</label><input type="text" id="gamme-desc" class="field" placeholder="Description courte..."></div>
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-gamme')" class="btn btn-secondary">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL PRODUIT -->
+    <div id="modal-product" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-base">Ajouter un produit</h3>
+                <button onclick="closeModal('modal-product')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveProduct(event)" class="p-6 space-y-4">
+                <div><label class="label">Nom du produit *</label><input type="text" id="product-name" required class="field" placeholder="Ex : Lait d'allaitement veau"></div>
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-product')" class="btn btn-secondary">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL TACHE -->
+    <div id="modal-task" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 id="modal-task-title" class="font-bold text-slate-800 text-base">Nouvelle tâche</h3>
+                <button onclick="closeModal('modal-task')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveTask(event)" class="p-6 space-y-4">
+                <input type="hidden" id="task-id">
+                <div><label class="label">Intitulé *</label><input type="text" id="task-title" required class="field" placeholder="Ex : Relancer l'offre tampons du rumen"></div>
+                <div><label class="label">Détails</label><textarea id="task-desc" rows="2" class="field"></textarea></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="label">Priorité</label>
+                        <select id="task-priority" class="field">
+                            <option value="high">Haute</option>
+                            <option value="medium" selected>Moyenne</option>
+                            <option value="low">Basse</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label">Avancement</label>
+                        <select id="task-status" class="field">
+                            <option value="todo">À faire</option>
+                            <option value="doing">En cours</option>
+                            <option value="waiting">En attente</option>
+                            <option value="done">Terminé</option>
+                        </select>
+                    </div>
+                    <div><label class="label">Échéance</label><input type="date" id="task-due" class="field"></div>
+                    <div><label class="label">Client lié</label><select id="task-client" class="field"></select></div>
+                </div>
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button type="button" id="task-delete" onclick="deleteTask()" class="btn btn-danger hidden"><i data-lucide="trash-2" class="w-4 h-4"></i> Supprimer</button>
+                    <div class="flex gap-2 ml-auto">
+                        <button type="button" onclick="closeModal('modal-task')" class="btn btn-secondary">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL APERCU IMPORT -->
+    <div id="modal-import" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full border border-slate-100 flex flex-col max-h-[90vh]">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 rounded-t-2xl">
+                <h3 id="import-title" class="font-bold text-slate-800 text-base">Aperçu de l'import</h3>
+                <button onclick="closeModal('modal-import')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div id="import-body" class="p-6 overflow-y-auto custom-scrollbar space-y-5 text-sm text-slate-700"></div>
+            <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+                <button onclick="closeModal('modal-import')" class="btn btn-secondary">Annuler</button>
+                <button id="import-confirm" onclick="confirmImport()" class="btn btn-primary">Confirmer l'import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RDV -->
+    <div id="modal-meeting" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 id="modal-meeting-title" class="font-bold text-slate-800 text-base">Planifier un rendez-vous</h3>
+                <button onclick="closeModal('modal-meeting')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveMeeting(event)" class="p-6 space-y-4">
+                <input type="hidden" id="meeting-id">
+                <div><label class="label">Client *</label><select id="meeting-client" required class="field"></select></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Date prévue *</label><input type="date" id="meeting-date" required class="field"></div>
+                    <div>
+                        <label class="label">Type</label>
+                        <select id="meeting-type" class="field">
+                            <option value="Visite Terrain">Visite terrain</option>
+                            <option value="Réunion Technique">Réunion technique</option>
+                            <option value="Appel Téléphonique">Appel téléphonique</option>
+                            <option value="Essai Aliment">Suivi d'essai terrain</option>
+                        </select>
+                    </div>
+                </div>
+                <div><label class="label">Interlocuteur</label><input type="text" id="meeting-contact" class="field"></div>
+                <div><label class="label">Objectif *</label><textarea id="meeting-objectif" rows="2" required class="field" placeholder="Ex : présenter l'offre tampons du rumen"></textarea></div>
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button type="button" id="meeting-delete" onclick="deleteMeeting()" class="btn btn-danger hidden"><i data-lucide="trash-2" class="w-4 h-4"></i> Supprimer</button>
+                    <div class="flex gap-2 ml-auto">
+                        <button type="button" onclick="closeModal('modal-meeting')" class="btn btn-secondary">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL OPPORTUNITE -->
+    <div id="modal-op" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 id="modal-op-title" class="font-bold text-slate-800 text-base">Nouvelle opportunité</h3>
+                <button onclick="closeModal('modal-op')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleSaveOp(event)" class="p-6 space-y-4">
+                <input type="hidden" id="op-id">
+                <div><label class="label">Intitulé *</label><input type="text" id="op-title" required class="field" placeholder="Ex : Contrat annuel tampons du rumen"></div>
+                <div><label class="label">Client *</label><select id="op-client" required class="field"></select></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Potentiel (tonnes / an)</label><input type="number" id="op-tonnage" min="0" step="any" class="field" placeholder="Ex : 80"></div>
+                    <div>
+                        <label class="label">Étape</label>
+                        <select id="op-stage" class="field"></select>
+                    </div>
+                </div>
+                <div><label class="label">Détails</label><textarea id="op-note" rows="2" class="field" placeholder="Contexte, enjeux, concurrence..."></textarea></div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="label">Prochaine action</label><input type="text" id="op-next-action" class="field" placeholder="Ex : envoyer le chiffrage"></div>
+                    <div><label class="label">Pour le</label><input type="date" id="op-next-date" class="field"></div>
+                </div>
+                <div class="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                    <button type="button" id="op-delete" onclick="deleteOp()" class="btn btn-danger hidden"><i data-lucide="trash-2" class="w-4 h-4"></i> Supprimer</button>
+                    <div class="flex gap-2 ml-auto">
+                        <button type="button" onclick="closeModal('modal-op')" class="btn btn-secondary">Annuler</button>
+                        <button type="submit" class="btn btn-primary">Enregistrer</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL MOT DE PASSE -->
+    <div id="modal-password" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-800 text-base">Changer le mot de passe</h3>
+                <button onclick="closeModal('modal-password')" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form onsubmit="handleChangePassword(event)" class="p-6 space-y-4">
+                <div><label class="label">Mot de passe actuel *</label><input type="password" id="pw-current" required autocomplete="current-password" class="field"></div>
+                <div><label class="label">Nouveau mot de passe * (8 caractères min.)</label><input type="password" id="pw-new" required autocomplete="new-password" class="field"></div>
+                <div><label class="label">Confirmer le nouveau mot de passe *</label><input type="password" id="pw-new2" required autocomplete="new-password" class="field"></div>
+                <p id="pw-error" class="text-xs text-rose-600 hidden"></p>
+                <div class="pt-3 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-password')" class="btn btn-secondary">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Modifier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ECRAN DE VERROUILLAGE -->
+    <div id="lock-screen" class="fixed inset-0 z-[100] bg-slate-50 flex items-center justify-center p-4">
+        <form onsubmit="handleLockSubmit(event)" class="w-full max-w-sm bg-white rounded-2xl border border-slate-200 shadow-xl p-8 space-y-5">
+            <div class="flex flex-col items-center text-center gap-3">
+                <div class="bg-sage-600 p-3 rounded-xl text-white"><i data-lucide="lock" class="w-6 h-6"></i></div>
+                <div>
+                    <h1 id="lock-title" class="font-bold text-slate-900 text-lg">CRM verrouillé</h1>
+                    <p id="lock-sub" class="text-sm text-slate-500 mt-1">Saisissez votre mot de passe pour continuer.</p>
+                </div>
+            </div>
+            <div><label class="label">Mot de passe</label><input type="password" id="lock-pw" required autocomplete="current-password" class="field"></div>
+            <div id="lock-pw2-wrap" class="hidden"><label class="label">Confirmer le mot de passe</label><input type="password" id="lock-pw2" autocomplete="new-password" class="field"></div>
+            <p id="lock-error" class="text-xs text-rose-600 hidden"></p>
+            <p id="lock-note" class="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-lg p-3 hidden"></p>
+            <button type="submit" id="lock-btn" class="btn btn-primary w-full"><span id="lock-btn-label">Déverrouiller</span></button>
+            <button type="button" id="lock-forgot" onclick="forgotPassword()" class="text-xs text-slate-400 hover:text-slate-600 underline w-full">Mot de passe oublié ?</button>
+        </form>
+    </div>
+
+    <div id="toasts" class="fixed bottom-5 right-5 z-[110] flex flex-col gap-2"></div>
+
+    <script>
+        /* ============================== CONSTANTES ============================== */
+        const TYPE_FAB = "Fabricant d'aliments";
+        const TYPE_DIST = "Distributeur de produits en élevage";
+        const REGIONS = ["Bretagne", "Normandie", "Pays de la Loire", "Nouvelle-Aquitaine", "Occitanie", "Auvergne-Rhône-Alpes", "Grand Est", "Hauts-de-France", "Centre-Val de Loire", "Bourgogne-Franche-Comté", "Île-de-France", "Provence-Alpes-Côte d'Azur", "Corse"];
+        const NO_REGION = "Non renseignée";
+        const STATUSES = [
+            { id: 'todo',    label: 'À faire',    dot: 'bg-slate-400' },
+            { id: 'doing',   label: 'En cours',   dot: 'bg-blue-500' },
+            { id: 'waiting', label: 'En attente', dot: 'bg-amber-500' },
+            { id: 'done',    label: 'Terminé',    dot: 'bg-sage-500' }
+        ];
+        const PRIORITIES = {
+            high:   { label: 'Haute',   rank: 0, chip: 'bg-rose-50 text-rose-700 border-rose-100',    bar: 'border-l-rose-400',  dot: 'bg-rose-400' },
+            medium: { label: 'Moyenne', rank: 1, chip: 'bg-amber-50 text-amber-700 border-amber-100', bar: 'border-l-amber-400', dot: 'bg-amber-400' },
+            low:    { label: 'Basse',   rank: 2, chip: 'bg-slate-100 text-slate-600 border-slate-200', bar: 'border-l-slate-300', dot: 'bg-slate-300' }
+        };
+        const PALETTE = ['#5a825b', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#10b981', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
+        const CLIENT_STATUTS = {
+            prospect: { label: 'Prospect',     chip: 'bg-violet-50 text-violet-700' },
+            actif:    { label: 'Client actif', chip: 'bg-sage-50 text-sage-700' },
+            dormant:  { label: 'Dormant',      chip: 'bg-slate-100 text-slate-600' }
+        };
+        const OP_STAGES = [
+            { id: 'prospect', label: 'À ouvrir',        dot: 'bg-slate-400',    chip: 'bg-slate-100 text-slate-600' },
+            { id: 'contact',  label: '1er contact',     dot: 'bg-blue-500',     chip: 'bg-blue-50 text-blue-700' },
+            { id: 'offer',    label: 'Offre envoyée',   dot: 'bg-amber-500',    chip: 'bg-amber-50 text-amber-700' },
+            { id: 'negoc',    label: 'Négociation',     dot: 'bg-orange-500',   chip: 'bg-orange-50 text-orange-700' },
+            { id: 'won',      label: 'Gagnée',          dot: 'bg-sage-500',     chip: 'bg-sage-50 text-sage-700' },
+            { id: 'lost',     label: 'Perdue',          dot: 'bg-rose-400',     chip: 'bg-rose-50 text-rose-700' }
+        ];
+        const isOpenOp = o => o.stage !== 'won' && o.stage !== 'lost';
+
+        /* ============================== UTILITAIRES ============================== */
+        const $ = id => document.getElementById(id);
+        const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const norm = s => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+        const clone = o => JSON.parse(JSON.stringify(o));
+        const round2 = n => Math.round(n * 100) / 100;
+        const fmtT = n => round2(n).toLocaleString('fr-FR') + ' T';
+        const icons = () => { if (window.lucide) lucide.createIcons(); };
+        const uid = p => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+        function localISO(d = new Date()) { return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
+        function addDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return localISO(d); }
+        function fmtDate(iso) { return iso ? iso.split('-').reverse().join('/') : ''; }
+
+        function toast(msg, type = 'ok', ms = 4500) {
+            const d = document.createElement('div');
+            d.className = 'px-4 py-3 rounded-lg shadow-lg text-sm max-w-md border ' + (type === 'err' ? 'bg-rose-50 text-rose-800 border-rose-200' : 'bg-white text-slate-800 border-slate-200');
+            d.textContent = msg;
+            $('toasts').appendChild(d);
+            setTimeout(() => d.remove(), type === 'err' ? Math.max(ms, 8000) : ms);
+        }
+        function openModal(id) { $(id).classList.remove('hidden'); icons(); }
+        function closeModal(id) { $(id).classList.add('hidden'); }
+
+        function download(filename, content, mime) {
+            const blob = new Blob([content], { type: mime });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = filename;
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+
+        /* ============================== DONNEES ============================== */
+        const INITIAL_CATALOG = [
+            { gamme: "Minéraux & Vitamines", description: "Poudre, granulés et seaux à lécher pour ruminants", items: ["RumiMinéral Poudre VL (Laetière)", "RumiMinéral Génisses & Allaitement", "Seaux à lécher Pâturage Bio"] },
+            { gamme: "Jeunes Ruminants / Allaitement", description: "Poudres de lait et aliments 1er âge veaux/agneaux", items: ["Lait d'Allaitement Veau TopCroissance", "Aliment StartVeau Granulé 18%", "Sérum Réhydratant Electrolytes"] },
+            { gamme: "Additifs & Efficacité Digestive", description: "Tampons du rumen, levures vivantes, mycotoxines", items: ["RumiYeast Levure Vivante", "RumiBuffer Tampon Rumen Premium", "MycoProtect Capteur de Mycotoxines"] },
+            { gamme: "Spécialités Tarissement & Broutards", description: "Préparation vêlage, gestion du stress et engraissement", items: ["Bolus Tarissement Calcilong", "Aliment Engraissement Broutard Express", "RumiKetosis Anti-Acétonémie"] }
+        ];
+        const INITIAL_CLIENTS = [
+            { id: "c1", name: "Armor Nutrition Animale SAS", type: TYPE_FAB, region: "Bretagne", zone: "22, 35, 56", notes: "Usine 120 000 T/an. Forte demande en tampons.", stakeholders: [], sales: { "Minéraux & Vitamines": { "RumiMinéral Poudre VL (Laetière)": 180 } } }
+        ];
+        const INITIAL_TASKS = () => [
+            { id: uid('t'), title: "Préparer le RDV Armor Nutrition : offre tampons du rumen", description: "Chiffrer le potentiel sur l'usine et préparer les essais.", clientId: "c1", priority: "high", status: "todo", due: addDays(3) },
+            { id: uid('t'), title: "Mettre à jour le catalogue avec les nouveaux tarifs", description: "", clientId: "", priority: "medium", status: "doing", due: addDays(7) },
+            { id: uid('t'), title: "Envoyer le compte-rendu de la dernière visite", description: "", clientId: "", priority: "low", status: "done", due: "" }
+        ];
+        const INITIAL_OPS = () => [
+            { id: uid('o'), clientId: "c1", title: "Contrat annuel tampons du rumen", tonnage: 90, stage: "offer", note: "Essai en cours sur la ligne de Rennes.", nextAction: "Envoyer le chiffrage cadre", nextDate: addDays(4), createdAt: new Date().toISOString() },
+            { id: uid('o'), clientId: "c1", title: "Référencement gammes veaux", tonnage: 40, stage: "prospect", note: "", nextAction: "Qualifier le besoin", nextDate: addDays(10), createdAt: new Date().toISOString() }
+        ];
+        const INITIAL_MEETINGS = () => [
+            { id: uid('m'), clientId: "c1", date: addDays(2), type: "Visite Terrain", contact: "Service achats", objectif: "Présenter l'offre tampons du rumen" }
+        ];
+
+        function load(key, fallback) {
+            try { const v = JSON.parse(localStorage.getItem(key)); if (v !== null && v !== undefined) return v; } catch (e) { }
+            return typeof fallback === 'function' ? fallback() : clone(fallback);
+        }
+        // Les données sont chargées après déverrouillage (voir « Verrouillage & chiffrement »)
+        let catalog = [], clients = [], visits = [], tasks = [], ops = [], meetings = [];
+
+        let currentTab = 'dashboard';
+        let currentClientId = null;
+        let searchQuery = '';
+        let targetGammeIdx = null;
+        let chartGamme = null, chartRegion = null;
+        let dashYear = '';
+
+        /* ============================== VERROUILLAGE & CHIFFREMENT ============================== */
+        const VAULT_KEY = 'crm_vault';
+        const LEGACY_KEYS = ['catalog', 'clients', 'visits', 'tasks', 'ops', 'meetings'].map(k => 'crm_ruminant_' + k);
+        const PBKDF2_ITER = 250000;
+        const IDLE_MS = 15 * 60 * 1000;
+        let vaultKey = null, vaultSalt = null, saveChain = Promise.resolve(), lockMode = 'unlock', idleTimer = null;
+        const textEnc = new TextEncoder(), textDec = new TextDecoder();
+
+        function toB64(buf) {
+            const u = new Uint8Array(buf); let s = '';
+            for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+            return btoa(s);
+        }
+        function fromB64(s) { const bin = atob(s), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+        async function deriveKey(pw, salt, iter = PBKDF2_ITER) {
+            const base = await crypto.subtle.importKey('raw', textEnc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+            return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+        }
+        async function encryptData(key, obj) {
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, textEnc.encode(JSON.stringify(obj)));
+            return { iv: toB64(iv), data: toB64(ct) };
+        }
+        async function decryptData(key, vault) {
+            const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(vault.iv) }, key, fromB64(vault.data));
+            return JSON.parse(textDec.decode(pt));
+        }
+
+        // Enregistre toutes les données, chiffrées, dans un seul bloc (file d'attente pour garder l'ordre des écritures)
+        function saveData() {
+            if (!vaultKey) return saveChain;
+            saveChain = saveChain.then(async () => {
+                const rec = await encryptData(vaultKey, { catalog, clients, visits, tasks, ops, meetings });
+                localStorage.setItem(VAULT_KEY, JSON.stringify({ v: 1, iter: PBKDF2_ITER, salt: vaultSalt, ...rec }));
+            }).catch(() => toast("Impossible d'enregistrer les données (stockage plein ou bloqué).", 'err'));
+            return saveChain;
+        }
+        function commit() { saveData(); refreshAll(); }
+
+        function hasLegacyData() { return LEGACY_KEYS.some(k => localStorage.getItem(k) !== null); }
+
+        /* Normalise les anciens formats : ventes sans année (nombre -> {année: volume}), statut et potentiel. */
+        function migrateVault(d) {
+            d.clients = (d.clients || []).map(c => ({
+                ...c,
+                statut: CLIENT_STATUTS[c.statut] ? c.statut : '',
+                potentiel: Number(c.potentiel) > 0 ? Number(c.potentiel) : null,
+                sales: Object.fromEntries(Object.entries(c.sales || {}).map(([g, prods]) => [
+                    g, Object.fromEntries(Object.entries(prods || {}).map(([p, v]) => [p, typeof v === 'number' ? { '': v } : (v || {})]))
+                ]))
+            }));
+            d.ops = (d.ops || []).map(o => ({ ...o, tonnage: Number(o.tonnage) > 0 ? Number(o.tonnage) : null }));
+            d.meetings = d.meetings || [];
+            return d;
+        }
+
+        function startAuth() {
+            if (!window.crypto?.subtle) {
+                $('lock-title').innerText = 'Navigateur non compatible';
+                $('lock-sub').innerText = "Le chiffrement n'est pas disponible. Ouvrez ce fichier dans une version récente de Chrome, Edge, Firefox ou Safari.";
+                $('lock-btn').disabled = true; $('lock-pw').disabled = true; $('lock-forgot').classList.add('hidden');
+                return;
+            }
+            showLock(localStorage.getItem(VAULT_KEY) ? 'unlock' : 'setup');
+        }
+        function showLock(mode) {
+            lockMode = mode;
+            const setup = mode === 'setup';
+            $('lock-title').innerText = setup ? 'Créer votre mot de passe' : 'CRM verrouillé';
+            $('lock-sub').innerText = setup ? 'Vos données seront chiffrées sur cet ordinateur.' : 'Saisissez votre mot de passe pour continuer.';
+            $('lock-pw2-wrap').classList.toggle('hidden', !setup);
+            $('lock-pw2').required = setup;
+            $('lock-pw').setAttribute('autocomplete', setup ? 'new-password' : 'current-password');
+            $('lock-note').innerText = (hasLegacyData() ? 'Vos données actuelles seront chiffrées avec ce mot de passe. ' : '') + "Il ne peut pas être récupéré : si vous l'oubliez, les données seront perdues. Faites régulièrement une sauvegarde JSON (Import / Export).";
+            $('lock-note').classList.toggle('hidden', !setup);
+            $('lock-forgot').classList.toggle('hidden', setup);
+            $('lock-btn-label').innerText = setup ? 'Créer et ouvrir le CRM' : 'Déverrouiller';
+            lockError('');
+            $('lock-screen').classList.remove('hidden');
+            icons();
+            setTimeout(() => $('lock-pw').focus(), 50);
+        }
+        function lockError(msg) { const e = $('lock-error'); e.innerText = msg || ''; e.classList.toggle('hidden', !msg); }
+
+        async function handleLockSubmit(e) {
+            e.preventDefault();
+            const pw = $('lock-pw').value, btn = $('lock-btn');
+            lockError(''); btn.disabled = true;
+            try {
+                if (lockMode === 'setup') {
+                    if (pw.length < 8) throw new Error('Le mot de passe doit contenir au moins 8 caractères.');
+                    if (pw !== $('lock-pw2').value) throw new Error('Les deux mots de passe sont différents.');
+                    const salt = crypto.getRandomValues(new Uint8Array(16));
+                    vaultKey = await deriveKey(pw, salt); vaultSalt = toB64(salt);
+                    const legacy = hasLegacyData();
+                    ({ catalog, clients, visits, tasks, ops, meetings } = migrateVault({
+                        catalog: load('crm_ruminant_catalog', INITIAL_CATALOG),
+                        clients: load('crm_ruminant_clients', INITIAL_CLIENTS),
+                        visits: load('crm_ruminant_visits', []),
+                        tasks: load('crm_ruminant_tasks', INITIAL_TASKS),
+                        ops: load('crm_ruminant_ops', INITIAL_OPS),
+                        meetings: load('crm_ruminant_meetings', INITIAL_MEETINGS)
+                    }));
+                    await saveData();
+                    if (!localStorage.getItem(VAULT_KEY)) { vaultKey = null; throw new Error("L'enregistrement chiffré a échoué : vos données n'ont pas été modifiées."); }
+                    if (legacy) LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); // supprime la version non chiffrée
+                } else {
+                    const v = JSON.parse(localStorage.getItem(VAULT_KEY));
+                    const key = await deriveKey(pw, fromB64(v.salt), v.iter || PBKDF2_ITER);
+                    let d;
+                    try { d = await decryptData(key, v); } catch (err) { throw new Error('Mot de passe incorrect.'); }
+                    vaultKey = key; vaultSalt = v.salt;
+                    ({ catalog, clients, visits, tasks, ops, meetings } = migrateVault(d));
+                }
+                enterApp();
+            } catch (err) { lockError(err.message || String(err)); $('lock-pw').select(); }
+            finally { btn.disabled = false; }
+        }
+
+        function enterApp() {
+            $('lock-screen').classList.add('hidden');
+            ['lock-pw', 'lock-pw2'].forEach(i => $(i).value = '');
+            if (!chartGamme) initCharts();
+            refreshAll();
+            switchTab('dashboard');
+            resetIdle();
+        }
+
+        function lockNow() { saveChain.then(() => location.reload()); }
+        function resetIdle() { clearTimeout(idleTimer); if (vaultKey) idleTimer = setTimeout(lockNow, IDLE_MS); }
+
+        function wipeAll() { localStorage.removeItem(VAULT_KEY); LEGACY_KEYS.forEach(k => localStorage.removeItem(k)); location.reload(); }
+        function forgotPassword() {
+            if (!confirm("Mot de passe oublié ?\n\nLe chiffrement ne permet aucune récupération. La seule option est d'effacer toutes les données de ce CRM pour repartir de zéro (vous pourrez ensuite restaurer une sauvegarde JSON si vous en avez une).\n\nEffacer maintenant ?")) return;
+            saveChain.then(wipeAll);
+        }
+        function resetData() {
+            if (!confirm("Effacer TOUTES les données ET le mot de passe, puis repartir des données de démonstration ?\n\nCette action est irréversible (pensez à faire une sauvegarde JSON avant).")) return;
+            saveChain.then(wipeAll);
+        }
+
+        function openPasswordModal() { ['pw-current', 'pw-new', 'pw-new2'].forEach(i => $(i).value = ''); $('pw-error').classList.add('hidden'); openModal('modal-password'); }
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const cur = $('pw-current').value, nw = $('pw-new').value, err = $('pw-error');
+            const fail = m => { err.innerText = m; err.classList.remove('hidden'); };
+            err.classList.add('hidden');
+            if (nw.length < 8) return fail('Le nouveau mot de passe doit contenir au moins 8 caractères.');
+            if (nw !== $('pw-new2').value) return fail('Les deux nouveaux mots de passe sont différents.');
+            await saveChain;
+            try {
+                const v = JSON.parse(localStorage.getItem(VAULT_KEY));
+                await decryptData(await deriveKey(cur, fromB64(v.salt), v.iter || PBKDF2_ITER), v);
+            } catch (x) { return fail('Mot de passe actuel incorrect.'); }
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            vaultKey = await deriveKey(nw, salt); vaultSalt = toB64(salt);
+            await saveData();
+            closeModal('modal-password'); toast('Mot de passe modifié.');
+        }
+
+        /* ============================== CALCULS ============================== */
+        // Un volume produit est soit un ancien nombre (sans année), soit { année: volume }.
+        function productTotal(p, year = '') {
+            if (typeof p === 'number') return year === '' ? (Number(p) || 0) : 0;
+            let t = 0;
+            Object.entries(p || {}).forEach(([y, v]) => { if (year === '' || y === year) t += Number(v) || 0; });
+            return round2(t);
+        }
+        function clientTotal(c, year = '') {
+            let t = 0;
+            Object.values(c.sales || {}).forEach(g => Object.values(g).forEach(p => t += productTotal(p, year)));
+            return round2(t);
+        }
+        function gammeTotal(name, year = '') {
+            let t = 0;
+            clients.forEach(c => { if (c.sales?.[name]) Object.values(c.sales[name]).forEach(p => t += productTotal(p, year)); });
+            return round2(t);
+        }
+        function allSalesYears() {
+            const set = new Set();
+            clients.forEach(c => Object.values(c.sales || {}).forEach(g => Object.values(g).forEach(p => {
+                if (p && typeof p !== 'number') Object.keys(p).forEach(y => set.add(y));
+            })));
+            return [...set].sort((a, b) => (b || '0').localeCompare(a || '0'));
+        }
+        function yearLabel(y) { return y === '__none' ? 'Sans année' : (y || 'Toutes années'); }
+        function clientPenetration(c) {
+            if (!c.potentiel) return null;
+            const cur = clientTotal(c, localISO().slice(0, 4));
+            return Math.min(999, Math.round(cur / c.potentiel * 100));
+        }
+        function pipelineTotal() { return round2(ops.filter(isOpenOp).reduce((a, o) => a + (Number(o.tonnage) || 0), 0)); }
+        const isOpen = t => t.status !== 'done';
+        const isLate = t => isOpen(t) && t.due && t.due < localISO();
+
+        /* ============================== NAVIGATION ============================== */
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.view').forEach(s => s.classList.add('hidden'));
+            $('view-' + tab).classList.remove('hidden');
+            const navId = tab === 'client-detail' ? 'clients' : tab;
+            document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('is-active', b.id === 'nav-' + navId));
+            if (tab === 'dashboard') { updateCharts(); renderTopClientsTable(); renderDashTasks(); }
+            else if (tab === 'clients') renderClients();
+            else if (tab === 'visits') { renderMeetings(); renderVisitsGlobalList(); }
+            else if (tab === 'catalog') renderCatalog();
+            else if (tab === 'tasks') renderKanban();
+            else if (tab === 'ops') renderOps();
+            $('scroll-area').scrollTop = 0;
+            icons();
+        }
+
+        function refreshAll() {
+            populateGammeFilter(); populateRegionFilter(); populateTaskClientSelects(); populateDashYear();
+            updateKPIs(); updateCounters(); updateCharts();
+            renderTopClientsTable(); renderDashTasks(); renderClients();
+            renderMeetings(); renderVisitsGlobalList(); renderCatalog(); renderKanban(); renderOps();
+            if (currentTab === 'client-detail') {
+                if (clients.find(c => c.id === currentClientId)) renderClientDetail(currentClientId);
+                else switchTab('clients');
+            }
+            icons();
+        }
+
+        /* ============================== DASHBOARD ============================== */
+        function updateCounters() {
+            $('count-fabricants').innerText = clients.filter(c => c.type === TYPE_FAB).length;
+            $('count-distributeurs').innerText = clients.filter(c => c.type === TYPE_DIST).length;
+            $('nav-task-count').innerText = tasks.filter(isOpen).length;
+            $('nav-ops-count').innerText = ops.filter(isOpenOp).length;
+            const upcoming = meetings.filter(m => m.date >= localISO()).length;
+            $('nav-meeting-count').innerText = upcoming;
+        }
+
+        function populateDashYear() {
+            const sel = $('dash-year');
+            sel.innerHTML = '<option value="">Toutes années</option>' + allSalesYears().map(y => `<option value="${esc(y)}">${esc(y === '' ? 'Sans année' : y)}</option>`).join('');
+            sel.value = [...sel.options].some(o => o.value === dashYear) ? dashYear : '';
+            $('kpi-volume-sub').innerText = yearLabel(dashYear);
+        }
+        function onDashYearChange() { dashYear = $('dash-year').value; populateDashYear(); updateKPIs(); updateCharts(); renderTopClientsTable(); }
+
+        function updateKPIs() {
+            let total = 0;
+            clients.forEach(c => total += clientTotal(c, dashYear));
+            $('kpi-total-volume').innerText = fmtT(total);
+            $('kpi-total-clients').innerText = clients.length;
+            $('kpi-count-fab').innerText = clients.filter(c => c.type === TYPE_FAB).length + ' Fab.';
+            $('kpi-count-dist').innerText = clients.filter(c => c.type === TYPE_DIST).length + ' Dist.';
+            const open = tasks.filter(isOpen);
+            $('kpi-open-tasks').innerText = open.length;
+            $('kpi-late-tasks').innerText = open.filter(isLate).length + ' en retard';
+            $('kpi-late-tasks').className = 'text-xs mt-1 ' + (open.some(isLate) ? 'text-rose-600 font-semibold' : 'text-slate-500');
+            let top = '-', max = 0;
+            catalog.forEach(g => { const v = gammeTotal(g.gamme, dashYear); if (v > max) { max = v; top = g.gamme; } });
+            $('kpi-top-gamme').innerText = top;
+            $('kpi-top-gamme').title = top;
+            const openOps = ops.filter(isOpenOp);
+            $('kpi-pipeline').innerText = fmtT(pipelineTotal());
+            $('kpi-pipeline-sub').innerText = openOps.length + ' opportunité(s) en cours';
+            $('kpi-meetings').innerText = meetings.filter(m => m.date >= localISO()).length;
+        }
+
+        function renderTopClientsTable() {
+            const tbody = $('top-clients-tbody');
+            const list = [...clients].sort((a, b) => clientTotal(b, dashYear) - clientTotal(a, dashYear)).slice(0, 5);
+            if (!list.length) { tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">Aucun client pour le moment</td></tr>`; return; }
+            tbody.innerHTML = list.map(c => {
+                const badge = c.type === TYPE_FAB ? `<span class="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Fab.</span>` : `<span class="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs">Dist.</span>`;
+                return `<tr class="hover:bg-slate-50 cursor-pointer" onclick="openClientDetail('${c.id}')"><td class="px-6 py-3 font-semibold text-slate-800">${esc(c.name)}</td><td class="px-6 py-3">${badge}</td><td class="px-6 py-3 text-xs">${esc(c.region)}</td><td class="px-6 py-3 text-xs">${(c.stakeholders || []).length}</td><td class="px-6 py-3 text-right font-bold text-sage-700">${fmtT(clientTotal(c, dashYear))}</td></tr>`;
+            }).join('');
+        }
+
+        function sortTasks(list, mode) {
+            const dueKey = t => t.due || '9999-12-31';
+            if (mode === 'priority') return [...list].sort((a, b) => PRIORITIES[a.priority].rank - PRIORITIES[b.priority].rank || dueKey(a).localeCompare(dueKey(b)));
+            if (mode === 'due') return [...list].sort((a, b) => dueKey(a).localeCompare(dueKey(b)) || PRIORITIES[a.priority].rank - PRIORITIES[b.priority].rank);
+            return list;
+        }
+
+        function renderDashTasks() {
+            const list = sortTasks(tasks.filter(isOpen), 'priority').slice(0, 6);
+            $('dash-tasks').innerHTML = list.length ? list.map(t => {
+                const cl = clients.find(c => c.id === t.clientId);
+                return `<button onclick="openTaskModal('${t.id}')" class="w-full text-left flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors">
+                    <span class="w-2 h-2 rounded-full mt-1.5 shrink-0 ${PRIORITIES[t.priority].dot}"></span>
+                    <span class="flex-1 min-w-0"><span class="block text-sm text-slate-800 truncate">${esc(t.title)}</span>
+                    <span class="block text-xs ${isLate(t) ? 'text-rose-600 font-medium' : 'text-slate-400'}">${[cl ? esc(cl.name) : '', t.due ? fmtDate(t.due) : ''].filter(Boolean).join(' · ') || STATUSES.find(s => s.id === t.status).label}</span></span></button>`;
+            }).join('') : `<p class="text-sm text-slate-400 text-center py-8">Aucune tâche ouverte</p>`;
+        }
+
+        function initCharts() {
+            if (!window.Chart) return;
+            chartGamme = new Chart($('chart-gammes').getContext('2d'), { type: 'doughnut', data: gammesChartData(), options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } } });
+            chartRegion = new Chart($('chart-regions').getContext('2d'), { type: 'bar', data: regionChartData(), options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+        }
+        function gammesChartData() {
+            return { labels: catalog.map(g => g.gamme), datasets: [{ data: catalog.map(g => gammeTotal(g.gamme, dashYear)), backgroundColor: catalog.map((_, i) => PALETTE[i % PALETTE.length]), borderWidth: 2, borderColor: '#fff' }] };
+        }
+        function regionChartData() {
+            const r = {};
+            clients.forEach(c => r[c.region] = (r[c.region] || 0) + clientTotal(c, dashYear));
+            return { labels: Object.keys(r), datasets: [{ label: 'Volume (T) — ' + yearLabel(dashYear), data: Object.values(r).map(round2), backgroundColor: '#5a825b', borderRadius: 6 }] };
+        }
+        function updateCharts() {
+            if (!chartGamme || !chartRegion) return;
+            chartGamme.data = gammesChartData(); chartGamme.update();
+            chartRegion.data = regionChartData(); chartRegion.update();
+            if (currentTab === 'dashboard') { chartGamme.resize(); chartRegion.resize(); }
+        }
+
+        /* ============================== CATALOGUE ============================== */
+        function populateGammeFilter() {
+            const sel = $('filter-gamme'), prev = sel.value;
+            sel.innerHTML = '<option value="">Toutes les gammes</option>' + catalog.map(c => `<option value="${esc(c.gamme)}">${esc(c.gamme)}</option>`).join('');
+            if (catalog.some(c => c.gamme === prev)) sel.value = prev;
+        }
+
+        function renderCatalog() {
+            const box = $('catalog-grid');
+            if (!catalog.length) { box.innerHTML = `<p class="text-sm text-slate-400 col-span-full text-center py-12">Catalogue vide. Créez une gamme ou importez un fichier.</p>`; return; }
+            box.innerHTML = catalog.map((cat, gi) => {
+                const prods = cat.items.map((p, pi) => `
+                    <div class="flex justify-between items-center py-1.5 px-2.5 bg-slate-50 rounded-md text-xs text-slate-700">
+                        <span class="truncate pr-2">${esc(p)}</span>
+                        <button onclick="deleteProduct(${gi}, ${pi})" class="text-slate-300 hover:text-rose-500 shrink-0"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                    </div>`).join('') || `<p class="text-xs text-slate-400 italic py-1">Aucun produit</p>`;
+                return `<div class="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+                    <div class="flex justify-between items-start mb-3 gap-3">
+                        <div class="min-w-0"><h3 class="font-bold text-slate-800">${esc(cat.gamme)}</h3><p class="text-xs text-slate-500">${esc(cat.description || '')}</p>
+                        <p class="text-[11px] text-sage-700 font-semibold mt-1">${cat.items.length} produit(s) · ${fmtT(gammeTotal(cat.gamme))} vendus</p></div>
+                        <button onclick="deleteGamme(${gi})" class="text-slate-300 hover:text-rose-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="space-y-1.5 mb-4">${prods}</div>
+                    <button onclick="openProductModal(${gi})" class="w-full py-2 bg-white border border-slate-200 text-sage-600 rounded-lg text-xs font-semibold hover:bg-slate-50">+ Ajouter un produit</button>
+                </div>`;
+            }).join('');
+            icons();
+        }
+
+        function openGammeModal() { $('gamme-name').value = ''; $('gamme-desc').value = ''; openModal('modal-gamme'); }
+        function handleSaveGamme(e) {
+            e.preventDefault();
+            const n = $('gamme-name').value.trim();
+            if (catalog.some(c => norm(c.gamme) === norm(n))) { toast('Cette gamme existe déjà.', 'err'); return; }
+            catalog.push({ gamme: n, description: $('gamme-desc').value.trim(), items: [] });
+            closeModal('modal-gamme'); commit();
+        }
+        function deleteGamme(gi) {
+            const g = catalog[gi]; if (!g) return;
+            const vol = gammeTotal(g.gamme);
+            if (!confirm(`Supprimer la gamme « ${g.gamme} » ?` + (vol > 0 ? `\n\nLes ${fmtT(vol)} de ventes rattachées à cette gamme seront aussi supprimés.` : ''))) return;
+            clients.forEach(c => { if (c.sales) delete c.sales[g.gamme]; });
+            catalog.splice(gi, 1); commit();
+        }
+        function openProductModal(gi) { targetGammeIdx = gi; $('product-name').value = ''; openModal('modal-product'); }
+        function handleSaveProduct(e) {
+            e.preventDefault();
+            const n = $('product-name').value.trim(), g = catalog[targetGammeIdx];
+            if (g && !g.items.some(p => norm(p) === norm(n))) g.items.push(n);
+            closeModal('modal-product'); commit();
+        }
+        function deleteProduct(gi, pi) {
+            const g = catalog[gi], p = g?.items[pi]; if (p === undefined) return;
+            if (!confirm(`Supprimer le produit « ${p} » ? Les ventes associées seront aussi supprimées.`)) return;
+            clients.forEach(c => { if (c.sales?.[g.gamme]) delete c.sales[g.gamme][p]; });
+            g.items.splice(pi, 1); commit();
+        }
+
+        /* ============================== CLIENTS ============================== */
+        function allRegions() {
+            const set = new Set(REGIONS);
+            clients.forEach(c => c.region && set.add(c.region));
+            return [...set];
+        }
+        function populateRegionFilter() {
+            const sel = $('filter-region'), prev = sel.value;
+            const present = [...new Set(clients.map(c => c.region).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+            sel.innerHTML = '<option value="">Toutes les régions</option>' + present.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+            if (present.includes(prev)) sel.value = prev;
+        }
+
+        function filterByClientType(type) { switchTab('clients'); $('filter-type').value = type; renderClients(); }
+        function resetFilters() {
+            $('filter-type').value = ''; $('filter-region').value = ''; $('filter-gamme').value = ''; $('filter-statut').value = '';
+            $('global-search').value = ''; searchQuery = ''; renderClients();
+        }
+        function handleGlobalSearch(v) {
+            searchQuery = v;
+            if (v.trim() && currentTab !== 'clients') switchTab('clients');
+            else if (currentTab === 'clients') renderClients();
+        }
+
+        function hasVolume(v) { return typeof v === 'number' ? Number(v) > 0 : Object.values(v || {}).some(x => Number(x) > 0); }
+        function getFilteredClients() {
+            const t = $('filter-type').value, r = $('filter-region').value, g = $('filter-gamme').value, s = $('filter-statut').value, q = norm(searchQuery);
+            return clients.filter(c => {
+                if (t && c.type !== t) return false;
+                if (r && c.region !== r) return false;
+                if (s && (s === '__none' ? !!c.statut : c.statut !== s)) return false;
+                if (g && !(c.sales?.[g] && Object.values(c.sales[g]).some(hasVolume))) return false;
+                if (q) {
+                    const products = [];
+                    Object.values(c.sales || {}).forEach(go => Object.entries(go).forEach(([p, v]) => { if (hasVolume(v)) products.push(p); }));
+                    const hay = norm([c.name, c.region, c.zone, c.notes, ...(c.stakeholders || []).flatMap(s => [s.name, s.role]), ...products].join(' | '));
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+        }
+
+        function renderClients() {
+            const list = getFilteredClients();
+            $('clients-count').innerText = `${list.length} client(s) affiché(s) sur ${clients.length}`;
+            $('clients-grid').innerHTML = list.length ? list.map(c => `
+                <div class="bg-white rounded-xl border border-slate-200 p-5 cursor-pointer hover:shadow-md transition-shadow" onclick="openClientDetail('${c.id}')">
+                    <div class="flex justify-between mb-3 gap-2"><span class="px-2 py-0.5 rounded-full text-xs font-semibold ${c.type === TYPE_FAB ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}">${c.type === TYPE_FAB ? 'Fabricant' : 'Distributeur'}</span><span class="text-xs text-slate-500">${esc(c.region)}</span></div>
+                    <h3 class="font-bold text-lg text-slate-900 leading-snug">${esc(c.name)}</h3>
+                    ${c.statut && CLIENT_STATUTS[c.statut] ? `<div class="mt-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${CLIENT_STATUTS[c.statut].chip}">${CLIENT_STATUTS[c.statut].label}</span></div>` : ''}
+                    <div class="mt-5 pt-4 border-t border-slate-100 flex justify-between">
+                        <div><span class="text-[10px] uppercase text-slate-400 block">Contacts</span><span class="text-xs font-semibold">${(c.stakeholders || []).length}</span></div>
+                        <div><span class="text-[10px] uppercase text-slate-400 block">Tâches</span><span class="text-xs font-semibold">${tasks.filter(t => t.clientId === c.id && isOpen(t)).length}</span></div>
+                        <div class="text-right"><span class="text-[10px] uppercase text-slate-400 block">Volume</span><span class="font-bold text-sage-700">${fmtT(clientTotal(c))}</span></div>
+                    </div>
+                </div>`).join('') : `<p class="text-sm text-slate-400 col-span-full text-center py-12">Aucun client ne correspond.</p>`;
+        }
+
+        function openClientDetail(id) { currentClientId = id; renderClientDetail(id); switchTab('client-detail'); }
+
+        function renderClientDetail(id) {
+            const c = clients.find(x => x.id === id); if (!c) return;
+            $('detail-client-name').innerText = c.name;
+            const tb = $('detail-client-type');
+            tb.innerText = c.type;
+            tb.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold ' + (c.type === TYPE_FAB ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700');
+            const sb = $('detail-client-statut');
+            if (c.statut && CLIENT_STATUTS[c.statut]) { sb.classList.remove('hidden'); sb.innerText = CLIENT_STATUTS[c.statut].label; sb.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold border ' + CLIENT_STATUTS[c.statut].chip; }
+            else sb.classList.add('hidden');
+            $('detail-client-region').innerText = c.region + (c.potentiel ? ` · Potentiel : ${fmtT(c.potentiel)}/an` : '') + (clientPenetration(c) !== null ? ` · Pénétration : ${clientPenetration(c)} %` : '');
+            $('detail-client-zone').innerText = c.zone || c.region;
+            $('detail-client-notes').innerText = c.notes || '-';
+            $('detail-client-total-tonnage').innerText = fmtT(clientTotal(c));
+
+            $('detail-stakeholders-list').innerHTML = (c.stakeholders || []).map(st => `
+                <div class="p-3 bg-slate-50 border border-slate-100 rounded-lg flex justify-between gap-2">
+                    <div class="min-w-0"><h4 class="text-sm font-semibold text-slate-800">${esc(st.name)}</h4><p class="text-xs text-slate-500">${esc(st.role)}</p>
+                    ${st.phone ? `<p class="text-xs text-slate-500 mt-1">${esc(st.phone)}</p>` : ''}${st.email ? `<p class="text-xs text-slate-500 truncate">${esc(st.email)}</p>` : ''}</div>
+                    <button onclick="deleteContact('${st.id}')" class="text-slate-300 hover:text-rose-500 shrink-0 self-start"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                </div>`).join('') || `<p class="text-xs text-slate-400">Aucune partie prenante</p>`;
+
+            const ct = sortTasks(tasks.filter(t => t.clientId === id), 'priority');
+            $('detail-tasks-list').innerHTML = ct.map(t => `
+                <button onclick="openTaskModal('${t.id}')" class="w-full text-left flex items-start gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-50">
+                    <span class="w-2 h-2 rounded-full mt-1.5 shrink-0 ${PRIORITIES[t.priority].dot}"></span>
+                    <span class="flex-1 min-w-0"><span class="block text-sm ${t.status === 'done' ? 'line-through text-slate-400' : 'text-slate-800'}">${esc(t.title)}</span>
+                    <span class="block text-xs ${isLate(t) ? 'text-rose-600' : 'text-slate-400'}">${STATUSES.find(s => s.id === t.status).label}${t.due ? ' · ' + fmtDate(t.due) : ''}</span></span></button>`).join('') || `<p class="text-xs text-slate-400">Aucune tâche liée</p>`;
+
+            // Ventes : seules les gammes / produits avec volume, avec détail par année
+            const pc = $('detail-products-container');
+            const blocks = catalog.map(cat => {
+                const gs = c.sales?.[cat.gamme] || {};
+                const rows = Object.entries(gs).filter(([, v]) => productTotal(v) > 0).sort((a, b) => productTotal(b[1]) - productTotal(a[1]));
+                const sum = rows.reduce((a, [, v]) => a + productTotal(v), 0);
+                if (!rows.length) return '';
+                return `<div class="border border-slate-100 rounded-xl overflow-hidden">
+                    <div class="bg-slate-50 px-3 py-2 flex justify-between"><span class="text-xs font-bold text-slate-700">${esc(cat.gamme)}</span><span class="text-xs font-bold text-sage-700">${fmtT(sum)}</span></div>
+                    <div class="p-2 space-y-1.5">${rows.map(([p, v]) => {
+                        const order = Object.entries(v || {}).filter(([, x]) => Number(x) > 0).sort((a, b) => (b[0] || '0').localeCompare(a[0] || '0'));
+                        const yearsTxt = Object.keys(v || {}).length > 1 || Object.keys(v || {}).join('') !== ''
+                            ? order.map(([y, x]) => `<span class="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px]" title="Volume ${y || 'sans année'}">${y || '—'} : ${fmtT(x)}</span>`).join(' ') : '';
+                        return `
+                        <div class="px-2"><div class="flex justify-between text-xs"><span class="text-slate-700">${esc(p)}</span><span class="font-semibold">${fmtT(productTotal(v))}</span></div>
+                        ${yearsTxt ? `<div class="flex flex-wrap gap-1 mt-1">${yearsTxt}</div>` : ''}
+                        <div class="h-1 bg-slate-100 rounded mt-1"><div class="h-1 bg-sage-400 rounded" style="width:${Math.max(3, Math.round(productTotal(v) / productTotal(rows[0][1]) * 100))}%"></div></div></div>`;
+                    }).join('')}</div></div>`;
+            }).join('');
+            pc.innerHTML = blocks || `<p class="text-sm text-slate-400 text-center py-6">Aucun volume enregistré. Utilisez « Modifier » ou l'import de ventes.</p>`;
+
+            const cv = visits.filter(v => v.clientId === id);
+            $('detail-visits-timeline').innerHTML = cv.map(v => `
+                <div class="border-l-2 border-sage-200 pl-4 py-1">
+                    <div class="flex justify-between text-xs text-slate-500"><span class="font-semibold text-slate-700">${esc(v.type)}${v.contact ? ' · ' + esc(v.contact) : ''}</span><span>${fmtDate(v.date)}</span></div>
+                    <p class="text-sm text-slate-700 mt-1">${esc(v.summary)}</p></div>`).join('') || `<p class="text-sm text-slate-400">Aucune visite enregistrée</p>`;
+            icons();
+        }
+
+        function populateRegionSelect(selected) {
+            const regs = allRegions();
+            if (selected && !regs.includes(selected)) regs.push(selected);
+            if (!regs.includes(NO_REGION)) regs.push(NO_REGION);
+            $('client-region').innerHTML = regs.map(r => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+            $('client-region').value = selected || REGIONS[0];
+        }
+
+        function populateFormSalesFields() {
+            const box = $('form-sales-container');
+            box.innerHTML = catalog.map(cat => {
+                if (!cat.items.length) return '';
+                const inputs = cat.items.map(p => `<div class="flex justify-between items-center gap-3 text-xs"><label class="flex-1 text-slate-700">${esc(p)}</label><input type="number" min="0" step="any" data-gamme="${esc(cat.gamme)}" data-product="${esc(p)}" class="product-volume-input w-24 px-2 py-1 border border-slate-200 rounded text-right"></div>`).join('');
+                return `<div class="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2"><h5 class="text-xs font-bold uppercase text-slate-600">${esc(cat.gamme)}</h5>${inputs}</div>`;
+            }).join('') || `<p class="text-xs text-slate-400">Le catalogue est vide.</p>`;
+        }
+
+        function populateSalesYearSelect(selected) {
+            const sel = $('sales-year');
+            const opts = [...new Set([localISO().slice(0, 4), ...allSalesYears()])];
+            sel.innerHTML = opts.map(y => `<option value="${esc(y)}">${esc(y || 'Sans année')}</option>`).join('');
+            sel.value = opts.some(y => y === selected) ? selected : localISO().slice(0, 4);
+        }
+        function fillSalesInputs() {
+            const c = clients.find(x => x.id === $('client-id').value);
+            if (!c) { document.querySelectorAll('.product-volume-input').forEach(i => i.value = ''); return; }
+            const y = $('sales-year').value;
+            document.querySelectorAll('.product-volume-input').forEach(inp => {
+                inp.value = productTotal(c.sales?.[inp.dataset.gamme]?.[inp.dataset.product] ?? {}, y === '' ? '' : y) || '';
+            });
+        }
+
+        function openClientModal(id = null) {
+            $('form-client').reset();
+            populateFormSalesFields();
+            const c = id ? clients.find(x => x.id === id) : null;
+            $('modal-client-title').innerText = c ? 'Modifier le client' : 'Nouveau client';
+            populateRegionSelect(c ? c.region : REGIONS[0]);
+            populateSalesYearSelect(localISO().slice(0, 4));
+            if (c) {
+                $('client-id').value = c.id; $('client-name').value = c.name; $('client-type').value = c.type;
+                $('client-zone').value = c.zone || ''; $('client-notes').value = c.notes || '';
+                $('client-statut').value = c.statut || ''; $('client-potentiel').value = c.potentiel ?? '';
+                fillSalesInputs();
+            } else { $('client-id').value = ''; $('client-statut').value = 'actif'; $('client-potentiel').value = ''; }
+            openModal('modal-client');
+        }
+
+        function handleSaveClient(e) {
+            e.preventDefault();
+            const id = $('client-id').value, sales = {}, yr = $('sales-year').value;
+            document.querySelectorAll('.product-volume-input').forEach(i => {
+                const g = i.dataset.gamme, p = i.dataset.product;
+                const prevBox = clients.find(x => x.id === id)?.sales?.[g]?.[p];
+                const box = (typeof prevBox === 'number') ? { '': prevBox } : { ...(prevBox || {}) };
+                const nv = Number(i.value);
+                if (nv > 0) box[yr] = round2(nv); else delete box[yr];
+                if (Object.keys(box).length) (sales[g] ??= {})[p] = box;
+            });
+            const prev = id ? clients.find(x => x.id === id) : null;
+            const data = { id: id || uid('c'), name: $('client-name').value.trim(), type: $('client-type').value, region: $('client-region').value, zone: $('client-zone').value.trim(), notes: $('client-notes').value.trim(), statut: $('client-statut').value, potentiel: Number($('client-potentiel').value) > 0 ? Number($('client-potentiel').value) : null, sales, stakeholders: prev ? prev.stakeholders || [] : [] };
+            if (prev) clients[clients.indexOf(prev)] = data; else clients.push(data);
+            closeModal('modal-client'); saveData();
+            if (prev) { currentClientId = id; refreshAll(); } else { refreshAll(); switchTab('clients'); }
+        }
+        function editCurrentClient() { if (currentClientId) openClientModal(currentClientId); }
+        function deleteCurrentClient() {
+            const c = clients.find(x => x.id === currentClientId); if (!c) return;
+            if (!confirm(`Supprimer « ${c.name} » ? Ses visites et RDV seront supprimés, ses tâches et opportunités détachées.`)) return;
+            clients = clients.filter(x => x.id !== c.id);
+            visits = visits.filter(v => v.clientId !== c.id);
+            meetings = meetings.filter(m => m.clientId !== c.id);
+            ops.forEach(o => { if (o.clientId === c.id) o.clientId = ''; });
+            tasks.forEach(t => { if (t.clientId === c.id) t.clientId = ''; });
+            saveData(); switchTab('clients'); refreshAll();
+        }
+
+        function openContactModal() { ['contact-name', 'contact-role', 'contact-phone', 'contact-email'].forEach(i => $(i).value = ''); openModal('modal-contact'); }
+        function handleSaveContact(e) {
+            e.preventDefault();
+            const c = clients.find(x => x.id === currentClientId); if (!c) return;
+            (c.stakeholders ??= []).push({ id: uid('s'), name: $('contact-name').value.trim(), role: $('contact-role').value.trim(), phone: $('contact-phone').value.trim(), email: $('contact-email').value.trim() });
+            closeModal('modal-contact'); commit();
+        }
+        function deleteContact(id) {
+            const c = clients.find(x => x.id === currentClientId); if (!c) return;
+            c.stakeholders = (c.stakeholders || []).filter(s => s.id !== id); commit();
+        }
+
+        /* ============================== VISITES ============================== */
+        function openVisitModal(fromGlobal = false) {
+            $('visit-client-select').innerHTML = clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+            if (!fromGlobal && currentTab === 'client-detail' && currentClientId) $('visit-client-select').value = currentClientId;
+            $('visit-date').value = localISO(); $('visit-contact').value = ''; $('visit-summary').value = '';
+            openModal('modal-visit');
+        }
+        function handleSaveVisit(e) {
+            e.preventDefault();
+            const cid = $('visit-client-select').value, cl = clients.find(x => x.id === cid); if (!cl) return;
+            visits.unshift({ id: uid('v'), clientId: cid, clientName: cl.name, date: $('visit-date').value, type: $('visit-type').value, contact: $('visit-contact').value.trim(), summary: $('visit-summary').value.trim() });
+            if (pendingMeetingId) { meetings = meetings.filter(m => m.id !== pendingMeetingId); pendingMeetingId = null; toast("Rendez-vous retiré de l'agenda."); }
+            closeModal('modal-visit'); commit();
+            if (currentTab !== 'client-detail') switchTab('visits');
+        }
+        function deleteVisit(id) { if (confirm('Supprimer ce compte-rendu ?')) { visits = visits.filter(v => v.id !== id); commit(); } }
+
+        /* ============================== RDV PLANIFIES ============================== */
+        let pendingMeetingId = null;
+        function populateMeetingClients(selected) {
+            const sel = $('meeting-client');
+            sel.innerHTML = [...clients].sort((a, b) => a.name.localeCompare(b.name, 'fr')).map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+            if (selected && clients.some(c => c.id === selected)) sel.value = selected;
+        }
+        function openMeetingModal(id = null, presetClient = null) {
+            if (!clients.length) { toast("Ajoutez d'abord un client.", 'err'); return; }
+            const m = id ? meetings.find(x => x.id === id) : null;
+            populateMeetingClients(m ? m.clientId : presetClient);
+            $('modal-meeting-title').innerText = m ? 'Modifier le rendez-vous' : 'Planifier un rendez-vous';
+            $('meeting-id').value = m ? m.id : '';
+            $('meeting-date').value = m ? m.date : localISO();
+            $('meeting-type').value = m ? m.type : 'Visite Terrain';
+            $('meeting-contact').value = m ? m.contact || '' : '';
+            $('meeting-objectif').value = m ? m.objectif || '' : '';
+            $('meeting-delete').classList.toggle('hidden', !m);
+            openModal('modal-meeting');
+            setTimeout(() => $('meeting-date').focus(), 50);
+        }
+        function handleSaveMeeting(e) {
+            e.preventDefault();
+            const id = $('meeting-id').value;
+            const data = { clientId: $('meeting-client').value, date: $('meeting-date').value, type: $('meeting-type').value, contact: $('meeting-contact').value.trim(), objectif: $('meeting-objectif').value.trim() };
+            if (id) Object.assign(meetings.find(m => m.id === id), data);
+            else meetings.push({ id: uid('m'), ...data });
+            closeModal('modal-meeting'); commit();
+        }
+        function deleteMeeting() {
+            const id = $('meeting-id').value;
+            if (id && confirm('Supprimer ce rendez-vous planifié ?')) { meetings = meetings.filter(m => m.id !== id); closeModal('modal-meeting'); commit(); }
+        }
+        function meetingItemHTML(m, withClient) {
+            const cl = clients.find(c => c.id === m.clientId);
+            const late = m.date < localISO();
+            return `<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border ${late ? 'border-rose-200 bg-rose-50/60' : 'border-slate-100 bg-slate-50'}">
+                <div class="min-w-0">
+                    <span class="text-sm font-semibold text-slate-800">${withClient ? esc(cl?.name || '(client supprimé)') : esc(m.type)}</span>
+                    <span class="text-xs text-slate-500 ml-2">${withClient ? esc(m.type) : esc(cl?.name || '')} · <span class="${late ? 'text-rose-600 font-semibold' : 'text-sage-700 font-semibold'}">${fmtDate(m.date)}</span>${m.contact ? ' · ' + esc(m.contact) : ''}</span>
+                    ${late ? '<span class="ml-1 text-[10px] font-bold text-rose-600 bg-white border border-rose-200 rounded px-1.5 py-0.5">À reporter</span>' : ''}
+                    <p class="text-xs text-slate-600 mt-1">${esc(m.objectif)}</p>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                    <button onclick="openVisitModalFromMeeting('${m.id}')" class="text-xs bg-sage-600 text-white px-2.5 py-1.5 rounded-lg font-semibold hover:bg-sage-700 flex items-center gap-1"><i data-lucide="clipboard-check" class="w-3 h-3"></i> CR</button>
+                    <button onclick="openMeetingModal('${m.id}')" class="text-slate-400 hover:text-sage-700 p-1.5" title="Modifier"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                    <button onclick="cancelMeeting('${m.id}')" class="text-slate-300 hover:text-rose-500 p-1.5" title="Annuler"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                </div>
+            </div>`;
+        }
+        function renderMeetings() {
+            const today = localISO();
+            const upcoming = meetings.filter(m => m.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+            const late = meetings.filter(m => m.date < today).sort((a, b) => b.date.localeCompare(a.date));
+            const row = (m, withClient) => meetingItemHTML(m, withClient);
+            $('meetings-list').innerHTML = (upcoming.map(m => row(m, true)).join('') + late.map(m => row(m, true)).join(''))
+                || `<p class="text-sm text-slate-400 text-center py-6">Aucun rendez-vous planifié. Cliquez sur « Planifier un RDV » pour organiser votre tournée.</p>`;
+            const c = $('view-client-detail').classList.contains('hidden') ? null : clients.find(x => x.id === currentClientId);
+            if (c) {
+                const cm = meetings.filter(m => m.clientId === c.id).sort((a, b) => a.date.localeCompare(b.date));
+                $('detail-meetings-list').innerHTML = cm.length ? cm.map(m => meetingItemHTML(m, false)).join('') : `<p class="text-xs text-slate-400">Aucun RDV planifié pour ce client.</p>`;
+            }
+            icons();
+        }
+        function openVisitModalFromMeeting(id) {
+            const m = meetings.find(x => x.id === id); if (!m) return;
+            pendingMeetingId = id;
+            $('visit-client-select').innerHTML = clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+            $('visit-client-select').value = m.clientId;
+            $('visit-date').value = m.date;
+            $('visit-type').value = m.type || 'Visite Terrain';
+            $('visit-contact').value = m.contact || '';
+            $('visit-summary').value = "Objectif initial : " + (m.objectif || '') + "\n\n";
+            openModal('modal-visit');
+            setTimeout(() => $('visit-summary').focus(), 50);
+        }
+        function cancelMeeting(id) { if (confirm("Retirer ce rendez-vous de l'agenda ?")) { meetings = meetings.filter(m => m.id !== id); commit(); } }
+
+        function renderVisitsGlobalList() {
+            const sorted = [...visits].sort((a, b) => b.date.localeCompare(a.date));
+            $('global-visits-list').innerHTML = sorted.map(v => {
+                const cl = clients.find(c => c.id === v.clientId);
+                return `<div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex justify-between items-start gap-3">
+                        <div class="cursor-pointer" onclick="openClientDetail('${v.clientId}')"><span class="font-bold text-slate-900">${esc(cl ? cl.name : v.clientName)}</span> <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded ml-2">${esc(v.type)}</span></div>
+                        <div class="flex items-center gap-3 shrink-0"><span class="text-xs text-slate-500">${fmtDate(v.date)}</span><button onclick="deleteVisit('${v.id}')" class="text-slate-300 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div>
+                    </div>
+                    ${v.contact ? `<p class="text-xs text-slate-500 mt-1">Avec ${esc(v.contact)}</p>` : ''}
+                    <p class="text-sm text-slate-700 mt-2">${esc(v.summary)}</p></div>`;
+            }).join('') || `<p class="text-sm text-slate-400 text-center py-12">Aucune visite enregistrée</p>`;
+            icons();
+        }
+
+        /* ============================== KANBAN ============================== */
+        function populateTaskClientSelects() {
+            const opts = clients.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+            const f = $('task-filter-client'), fp = f.value;
+            f.innerHTML = '<option value="">Tous les clients</option><option value="__none">Sans client</option>' + opts;
+            if (fp === '__none' || clients.some(c => c.id === fp)) f.value = fp;
+            const m = $('task-client'), mp = m.value;
+            m.innerHTML = '<option value="">Aucun</option>' + opts;
+            if (clients.some(c => c.id === mp)) m.value = mp;
+        }
+
+        function taskCardHTML(t) {
+            const pr = PRIORITIES[t.priority] || PRIORITIES.medium;
+            const cl = clients.find(c => c.id === t.clientId);
+            const idx = STATUSES.findIndex(s => s.id === t.status);
+            const done = t.status === 'done';
+            const late = isLate(t);
+            const arrow = (dir, icon) => {
+                const disabled = idx + dir < 0 || idx + dir >= STATUSES.length;
+                return `<button data-move="${t.id}" data-dir="${dir}" ${disabled ? 'disabled' : ''} title="${dir < 0 ? 'Reculer' : 'Avancer'}" class="p-0.5 rounded ${disabled ? 'text-slate-200 cursor-default' : 'text-slate-400 hover:text-sage-700 hover:bg-slate-100'}"><i data-lucide="${icon}" class="w-4 h-4"></i></button>`;
+            };
+            return `<div class="kanban-card bg-white rounded-lg border border-slate-200 border-l-4 ${pr.bar} p-3 shadow-sm hover:shadow cursor-grab active:cursor-grabbing ${done ? 'opacity-70' : ''}" draggable="true" data-id="${t.id}">
+                <p class="text-sm font-medium leading-snug ${done ? 'line-through text-slate-400' : 'text-slate-800'}">${esc(t.title)}</p>
+                ${t.description ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${esc(t.description)}</p>` : ''}
+                ${cl ? `<p class="text-xs text-slate-500 mt-2 flex items-center gap-1.5"><i data-lucide="building-2" class="w-3 h-3 text-slate-400"></i><span class="truncate">${esc(cl.name)}</span></p>` : ''}
+                <div class="flex items-center justify-between mt-2.5">
+                    <div class="flex items-center gap-2">
+                        <span class="px-1.5 py-0.5 rounded border text-[10px] font-semibold ${pr.chip}">${pr.label}</span>
+                        ${t.due ? `<span class="text-[11px] flex items-center gap-1 ${late ? 'text-rose-600 font-semibold' : 'text-slate-500'}"><i data-lucide="calendar" class="w-3 h-3"></i>${fmtDate(t.due)}</span>` : ''}
+                    </div>
+                    <div class="flex items-center">${arrow(-1, 'chevron-left')}${arrow(1, 'chevron-right')}</div>
+                </div></div>`;
+        }
+
+        function renderKanban() {
+            const fp = $('task-filter-priority').value, fc = $('task-filter-client').value, sort = $('task-sort').value;
+            const filtered = tasks.filter(t => (!fp || t.priority === fp) && (!fc || (fc === '__none' ? !t.clientId : t.clientId === fc)));
+            $('kanban-board').innerHTML = STATUSES.map(s => {
+                const col = sortTasks(filtered.filter(t => t.status === s.id), sort);
+                return `<div class="flex flex-col bg-slate-100/70 rounded-xl border border-slate-200">
+                    <div class="flex items-center justify-between px-3.5 py-3">
+                        <div class="flex items-center gap-2"><span class="w-2 h-2 rounded-full ${s.dot}"></span><h3 class="text-sm font-semibold text-slate-700">${s.label}</h3><span class="text-xs text-slate-400 font-medium">${col.length}</span></div>
+                        <button data-add-status="${s.id}" title="Ajouter une tâche" class="text-slate-400 hover:text-sage-600 p-1"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                    </div>
+                    <div class="kanban-zone px-2.5 pb-3 space-y-2.5 min-h-[140px]" data-status="${s.id}">
+                        ${col.map(taskCardHTML).join('') || '<p class="text-xs text-slate-400 text-center py-8">Aucune tâche</p>'}
+                    </div></div>`;
+            }).join('');
+            icons();
+        }
+
+        function moveTask(id, status, beforeId = null) {
+            const i = tasks.findIndex(t => t.id === id); if (i < 0) return;
+            const [t] = tasks.splice(i, 1);
+            t.status = status;
+            t.completedAt = status === 'done' ? (t.completedAt || localISO()) : null;
+            const j = beforeId ? tasks.findIndex(x => x.id === beforeId) : -1;
+            if (j >= 0) tasks.splice(j, 0, t); else tasks.push(t);
+            commit();
+        }
+
+        function initKanban() {
+            const board = $('kanban-board');
+            let dragId = null;
+            board.addEventListener('click', e => {
+                const mv = e.target.closest('[data-move]');
+                if (mv) { e.stopPropagation(); if (mv.disabled) return; const t = tasks.find(x => x.id === mv.dataset.move); const idx = STATUSES.findIndex(s => s.id === t.status) + Number(mv.dataset.dir); if (STATUSES[idx]) moveTask(t.id, STATUSES[idx].id); return; }
+                const add = e.target.closest('[data-add-status]');
+                if (add) { openTaskModal(null, add.dataset.addStatus); return; }
+                const card = e.target.closest('.kanban-card');
+                if (card) openTaskModal(card.dataset.id);
+            });
+            board.addEventListener('dragstart', e => {
+                const c = e.target.closest('.kanban-card'); if (!c) return;
+                dragId = c.dataset.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+                setTimeout(() => c.classList.add('is-dragging'), 0);
+            });
+            const clear = () => { board.querySelectorAll('.is-over').forEach(z => z.classList.remove('is-over')); board.querySelectorAll('.is-dragging').forEach(c => c.classList.remove('is-dragging')); };
+            board.addEventListener('dragend', () => { dragId = null; clear(); });
+            board.addEventListener('dragover', e => {
+                const z = e.target.closest('.kanban-zone'); if (!z || !dragId) return;
+                e.preventDefault();
+                board.querySelectorAll('.kanban-zone.is-over').forEach(o => { if (o !== z) o.classList.remove('is-over'); });
+                z.classList.add('is-over');
+            });
+            board.addEventListener('drop', e => {
+                const z = e.target.closest('.kanban-zone'); if (!z || !dragId) return;
+                e.preventDefault();
+                const after = [...z.querySelectorAll('.kanban-card')].filter(c => c.dataset.id !== dragId).find(c => { const r = c.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+                const id = dragId; dragId = null; clear();
+                moveTask(id, z.dataset.status, after ? after.dataset.id : null);
+            });
+        }
+
+        function openTaskModal(id = null, presetStatus = null, presetClient = null) {
+            populateTaskClientSelects();
+            const t = id ? tasks.find(x => x.id === id) : null;
+            $('modal-task-title').innerText = t ? 'Modifier la tâche' : 'Nouvelle tâche';
+            $('task-id').value = t ? t.id : '';
+            $('task-title').value = t ? t.title : '';
+            $('task-desc').value = t ? t.description || '' : '';
+            $('task-priority').value = t ? t.priority : 'medium';
+            $('task-status').value = t ? t.status : (presetStatus || 'todo');
+            $('task-due').value = t ? t.due || '' : '';
+            $('task-client').value = t ? t.clientId || '' : (presetClient || '');
+            $('task-delete').classList.toggle('hidden', !t);
+            openModal('modal-task');
+            setTimeout(() => $('task-title').focus(), 50);
+        }
+        function handleSaveTask(e) {
+            e.preventDefault();
+            const id = $('task-id').value;
+            const status = $('task-status').value;
+            const data = { title: $('task-title').value.trim(), description: $('task-desc').value.trim(), priority: $('task-priority').value, status, due: $('task-due').value, clientId: $('task-client').value };
+            const t = id ? tasks.find(x => x.id === id) : null;
+            if (t) { const wasDone = t.status === 'done'; Object.assign(t, data); if (status === 'done' && !wasDone) t.completedAt = localISO(); if (status !== 'done') t.completedAt = null; }
+            else tasks.push({ id: uid('t'), ...data, completedAt: status === 'done' ? localISO() : null });
+            closeModal('modal-task'); commit();
+        }
+        function deleteTask() {
+            const id = $('task-id').value;
+            if (id && confirm('Supprimer cette tâche ?')) { tasks = tasks.filter(t => t.id !== id); closeModal('modal-task'); commit(); }
+        }
+
+        /* ============================== OPPORTUNITES (PIPELINE) ============================== */
+        function populateOpClientSelects() {
+            const opts = [...clients].sort((a, b) => a.name.localeCompare(b.name, 'fr')).map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+            const m = $('op-client'), mp = m.value;
+            m.innerHTML = '<option value="" disabled>Sans client</option>' + opts;
+            if (clients.some(c => c.id === mp)) m.value = mp;
+            $('op-stage').innerHTML = OP_STAGES.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+        }
+        function opCardHTML(o) {
+            const st = OP_STAGES.find(s => s.id === o.stage) || OP_STAGES[0];
+            const cl = clients.find(c => c.id === o.clientId);
+            return `<div class="kanban-card-op bg-white rounded-lg border border-slate-200 p-3 shadow-sm hover:shadow cursor-grab active:cursor-grabbing ${['won','lost'].includes(o.stage) ? 'opacity-70' : ''}" draggable="true" data-id="${o.id}">
+                <p class="text-sm font-medium leading-snug text-slate-800">${esc(o.title)}</p>
+                ${o.tonnage ? `<p class="text-xs font-bold text-violet-700 mt-1.5">${fmtT(o.tonnage)}/an</p>` : ''}
+                ${cl ? `<p class="text-xs text-slate-500 mt-1.5 flex items-center gap-1.5"><i data-lucide="building-2" class="w-3 h-3 text-slate-400"></i><span class="truncate">${esc(cl.name)}</span></p>` : ''}
+                ${o.note ? `<p class="text-xs text-slate-500 mt-1 line-clamp-2">${esc(o.note)}</p>` : ''}
+                ${o.nextAction ? `<p class="text-[11px] text-slate-600 bg-slate-50 border border-slate-100 rounded px-2 py-1 mt-2"><span class="font-semibold">À faire :</span> ${esc(o.nextAction)}${o.nextDate ? ' <span class="text-slate-400">· ' + fmtDate(o.nextDate) + '</span>' : ''}</p>` : ''}
+                ${['won','lost'].includes(o.stage) ? `<p class="mt-2"><span class="px-1.5 py-0.5 rounded border text-[10px] font-semibold ${st.chip}">${st.label}</span></p>` : ''}
+            </div>`;
+        }
+        function renderOps() {
+            const open = ops.filter(isOpenOp);
+            $('ops-board').innerHTML = OP_STAGES.map(s => {
+                const col = ops.filter(o => o.stage === s.id);
+                const colT = round2(col.reduce((a, o) => a + (Number(o.tonnage) || 0), 0));
+                return `<div class="flex flex-col bg-slate-100/70 rounded-xl border border-slate-200">
+                    <div class="flex items-center justify-between px-3 py-2.5">
+                        <div class="flex items-center gap-2 min-w-0"><span class="w-2 h-2 rounded-full ${s.dot} shrink-0"></span><h3 class="text-xs font-semibold text-slate-700 truncate">${s.label}</h3></div>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                            <span class="text-[10px] text-slate-400 font-semibold">${col.length}</span>
+                            <button data-op-add="${s.id}" title="Nouvelle opportunité à cette étape" class="text-slate-400 hover:text-sage-600 p-0.5"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
+                        </div>
+                    </div>
+                    ${isOpenOp({ stage: s.id }) && colT > 0 ? `<p class="text-[10px] text-violet-700 font-bold px-3 pb-1">${fmtT(colT)}/an</p>` : ''}
+                    <div class="ops-zone px-2 pb-2.5 space-y-2 min-h-[120px]" data-stage="${s.id}">
+                        ${col.map(opCardHTML).join('') || `<p class="text-xs text-slate-400 text-center py-6">—</p>`}
+                    </div></div>`;
+            }).join('');
+            updateCounters(); updateKPIs();
+            icons();
+        }
+        function moveOp(id, stage) {
+            const o = ops.find(x => x.id === id); if (!o || o.stage === stage) return;
+            o.stage = stage;
+            commit();
+            if (stage === 'won') toast('Affaire gagnée 🎉 Pensez à enregistrer les volumes vendus chez ce client.');
+            if (stage === 'lost') toast('Affaire marquée perdue.');
+        }
+        function initOps() {
+            const board = $('ops-board');
+            let dragId = null;
+            board.addEventListener('click', e => {
+                const add = e.target.closest('[data-op-add]');
+                if (add) { openOpModal(null, add.dataset.opAdd); return; }
+                const card = e.target.closest('.kanban-card-op');
+                if (card) openOpModal(card.dataset.id);
+            });
+            board.addEventListener('dragstart', e => {
+                const c = e.target.closest('.kanban-card-op'); if (!c) return;
+                dragId = c.dataset.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragId);
+                setTimeout(() => c.classList.add('is-dragging'), 0);
+            });
+            const clear = () => { board.querySelectorAll('.is-over').forEach(z => z.classList.remove('is-over')); board.querySelectorAll('.kanban-card-op.is-dragging').forEach(c => c.classList.remove('is-dragging')); };
+            board.addEventListener('dragend', () => { dragId = null; clear(); });
+            board.addEventListener('dragover', e => {
+                const z = e.target.closest('.ops-zone'); if (!z || !dragId) return;
+                e.preventDefault();
+                board.querySelectorAll('.ops-zone.is-over').forEach(o => { if (o !== z) o.classList.remove('is-over'); });
+                z.classList.add('is-over');
+            });
+            board.addEventListener('drop', e => {
+                const z = e.target.closest('.ops-zone'); if (!z || !dragId) return;
+                e.preventDefault();
+                const id = dragId; dragId = null; clear();
+                moveOp(id, z.dataset.stage);
+            });
+        }
+        function openOpModal(id = null, presetStage = null, presetClient = null) {
+            if (!clients.length) { toast("Ajoutez d'abord un client.", 'err'); return; }
+            populateOpClientSelects();
+            const o = id ? ops.find(x => x.id === id) : null;
+            $('modal-op-title').innerText = o ? "Modifier l'opportunité" : "Nouvelle opportunité";
+            $('op-id').value = o ? o.id : '';
+            $('op-title').value = o ? o.title : '';
+            $('op-client').value = o ? o.clientId : (presetClient || clients[0]?.id || '');
+            $('op-tonnage').value = o && o.tonnage ? o.tonnage : '';
+            $('op-stage').value = o ? o.stage : (presetStage || 'prospect');
+            $('op-note').value = o ? o.note || '' : '';
+            $('op-next-action').value = o ? o.nextAction || '' : '';
+            $('op-next-date').value = o ? o.nextDate || '' : '';
+            $('op-delete').classList.toggle('hidden', !o);
+            openModal('modal-op');
+            setTimeout(() => $('op-title').focus(), 50);
+        }
+        function handleSaveOp(e) {
+            e.preventDefault();
+            const id = $('op-id').value;
+            const data = { title: $('op-title').value.trim(), clientId: $('op-client').value, tonnage: Number($('op-tonnage').value) > 0 ? Number($('op-tonnage').value) : null, stage: $('op-stage').value, note: $('op-note').value.trim(), nextAction: $('op-next-action').value.trim(), nextDate: $('op-next-date').value };
+            if (id) Object.assign(ops.find(o => o.id === id), data);
+            else ops.push({ id: uid('o'), ...data, createdAt: new Date().toISOString() });
+            closeModal('modal-op'); commit();
+        }
+        function deleteOp() {
+            const id = $('op-id').value;
+            if (id && confirm("Supprimer cette opportunité ?")) { ops = ops.filter(o => o.id !== id); closeModal('modal-op'); commit(); }
+        }
+
+        /* ============================== IMPORT : LECTURE DE FICHIERS ============================== */
+        function parseCSV(text, d) {
+            const rows = []; let row = [], cur = '', q = false;
+            for (let i = 0; i < text.length; i++) {
+                const ch = text[i];
+                if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+                else if (ch === '"') q = true;
+                else if (ch === d) { row.push(cur); cur = ''; }
+                else if (ch === '\n' || ch === '\r') { if (ch === '\r' && text[i + 1] === '\n') i++; row.push(cur); cur = ''; rows.push(row); row = []; }
+                else cur += ch;
+            }
+            if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+            return rows;
+        }
+
+        async function readTable(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            const buf = await file.arrayBuffer();
+            let raw;
+            if (['xlsx', 'xls', 'xlsm'].includes(ext)) {
+                if (!window.XLSX) throw new Error("Le lecteur Excel n'a pas pu être chargé (connexion internet requise). Enregistrez votre fichier au format CSV et réessayez.");
+                const wb = XLSX.read(buf, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                raw = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+            } else {
+                let text;
+                try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+                catch (e) { text = new TextDecoder('windows-1252').decode(buf); }
+                text = text.replace(/^\uFEFF/, '');
+                const first = text.split(/\r?\n/)[0] || '';
+                const delim = [';', '\t', ','].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+                raw = parseCSV(text, delim);
+            }
+            raw = raw.filter(r => r.some(c => String(c ?? '').trim() !== ''));
+            if (raw.length < 2) throw new Error("Le fichier est vide ou ne contient qu'une ligne d'en-têtes.");
+            return { headers: raw[0].map(h => String(h ?? '').trim()), rows: raw.slice(1) };
+        }
+
+        function mapColumns(headers, spec) {
+            const H = headers.map(norm), res = {}, used = new Set();
+            Object.keys(spec).forEach(k => res[k] = -1);
+            for (const k in spec) { const i = H.findIndex((h, ix) => !used.has(ix) && spec[k].includes(h)); if (i >= 0) { res[k] = i; used.add(i); } }
+            for (const k in spec) {
+                if (res[k] >= 0) continue;
+                const i = H.findIndex((h, ix) => !used.has(ix) && spec[k].some(s => s.length >= 4 && h.includes(s)));
+                if (i >= 0) { res[k] = i; used.add(i); }
+            }
+            return res;
+        }
+
+        function parseNum(v) {
+            if (typeof v === 'number') return isFinite(v) ? v : null;
+            let s = String(v ?? '').replace(/[\s\u00a0]/g, '').replace(/[^\d.,-]/g, '');
+            if (!s) return null;
+            if (s.includes(',') && s.includes('.')) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+            else s = s.replace(',', '.');
+            const n = parseFloat(s);
+            return isFinite(n) ? n : null;
+        }
+        function normType(v) {
+            const n = norm(v); if (!n) return null;
+            if (/fabric|usine|aliment/.test(n)) return TYPE_FAB;
+            if (/distrib|negoce|coop|revend/.test(n)) return TYPE_DIST;
+            return null;
+        }
+        function normRegion(v) {
+            const raw = String(v ?? '').trim(); if (!raw) return null;
+            const n = norm(raw);
+            return REGIONS.find(r => norm(r) === n) || REGIONS.find(r => n.startsWith(norm(r))) || raw;
+        }
+        const cell = (r, i) => i >= 0 ? String(r[i] ?? '').trim() : '';
+
+        /* ============================== IMPORT : APERCU & CONFIRMATION ============================== */
+        let pendingImport = null;
+
+        function showImportPreview({ title, stats, lists = [], warnings = [], apply }) {
+            pendingImport = apply;
+            $('import-title').innerText = title;
+            $('import-body').innerHTML = `
+                <div class="grid grid-cols-2 gap-3">${stats.map(s => `<div class="bg-slate-50 border border-slate-100 rounded-lg p-3"><p class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">${esc(s.label)}</p><p class="text-lg font-bold text-slate-900 mt-0.5">${esc(s.value)}</p></div>`).join('')}</div>
+                ${lists.filter(l => l.items.length).map(l => `<div><p class="text-xs font-semibold text-slate-500 uppercase mb-1.5">${esc(l.title)}</p><div class="flex flex-wrap gap-1.5">${l.items.slice(0, 12).map(i => `<span class="px-2 py-0.5 bg-sage-50 text-sage-800 border border-sage-100 rounded text-xs">${esc(i)}</span>`).join('')}${l.items.length > 12 ? `<span class="text-xs text-slate-400 self-center">+${l.items.length - 12}</span>` : ''}</div></div>`).join('')}
+                ${warnings.length ? `<div class="bg-amber-50 border border-amber-100 rounded-lg p-3"><p class="text-xs font-semibold text-amber-800 mb-1">${warnings.length} ligne(s) ignorée(s)</p><ul class="text-xs text-amber-800 space-y-0.5 list-disc pl-4">${warnings.slice(0, 8).map(w => `<li>${esc(w)}</li>`).join('')}${warnings.length > 8 ? `<li>… et ${warnings.length - 8} autre(s)</li>` : ''}</ul></div>` : ''}`;
+            openModal('modal-import');
+        }
+        function confirmImport() { const fn = pendingImport; pendingImport = null; closeModal('modal-import'); if (fn) fn(); }
+
+        /* ----- Catalogue ----- */
+        function planCatalogImport(table) {
+            const cols = mapColumns(table.headers, {
+                gamme: ['gamme', 'famille', 'famille produit', 'categorie', 'categorie produit'],
+                product: ['produit', 'produits', 'reference', 'article', 'designation', 'libelle', 'nom produit'],
+                description: ['description', 'descriptif', 'desc']
+            });
+            if (cols.gamme < 0) throw new Error(`Colonne « Gamme » introuvable. Colonnes détectées : ${table.headers.join(', ')}.`);
+            const next = clone(catalog), newGammes = [], newProducts = [], warnings = [];
+            let dup = 0;
+            table.rows.forEach((r, i) => {
+                const gName = cell(r, cols.gamme), pName = cell(r, cols.product), desc = cell(r, cols.description);
+                if (!gName) { if (pName) warnings.push(`Ligne ${i + 2} : gamme manquante pour « ${pName} »`); return; }
+                let g = next.find(x => norm(x.gamme) === norm(gName));
+                if (!g) { g = { gamme: gName, description: desc, items: [] }; next.push(g); newGammes.push(gName); }
+                else if (!g.description && desc) g.description = desc;
+                if (pName) {
+                    if (g.items.some(p => norm(p) === norm(pName))) dup++;
+                    else { g.items.push(pName); newProducts.push(pName); }
+                }
+            });
+            return {
+                title: 'Aperçu : import du catalogue',
+                stats: [{ label: 'Nouvelles gammes', value: newGammes.length }, { label: 'Nouveaux produits', value: newProducts.length }, { label: 'Déjà présents', value: dup }, { label: 'Lignes lues', value: table.rows.length }],
+                lists: [{ title: 'Gammes créées', items: newGammes }, { title: 'Produits ajoutés', items: newProducts }],
+                warnings,
+                apply: () => { catalog = next; commit(); toast(`Catalogue mis à jour : ${newGammes.length} gamme(s), ${newProducts.length} produit(s) ajouté(s).`); }
+            };
+        }
+
+        /* ----- Ventes ----- */
+        function planSalesImport(table, mode) {
+            const cols = mapColumns(table.headers, {
+                client: ['client', 'clients', 'entreprise', 'societe', 'raison sociale', 'nom client', 'compte', 'nom'],
+                type: ['type', 'typologie', 'type client', 'type de client', 'categorie client'],
+                region: ['region', 'regions'],
+                zone: ['zone', 'zone d action', 'departement', 'departements', 'secteur'],
+                gamme: ['gamme', 'famille', 'famille produit', 'categorie', 'categorie produit'],
+                product: ['produit', 'produits', 'reference', 'article', 'designation', 'libelle', 'nom produit'],
+                volume: ['volume', 'volumes', 'volume t', 'volume tonnes', 'tonnes', 'tonnage', 'quantite', 'quantite t', 'qte', 'vol'],
+                annee: ['annee', 'year', 'campagne', 'exercice', 'annee campagne']
+            });
+            const LABELS = { client: 'Client', product: 'Produit', volume: 'Volume (T)' };
+            const missing = ['client', 'product', 'volume'].filter(k => cols[k] < 0);
+            if (missing.length) throw new Error(`Colonne(s) introuvable(s) : ${missing.map(k => LABELS[k]).join(', ')}. Colonnes détectées : ${table.headers.join(', ')}.`);
+
+            const curYear = localISO().slice(0, 4);
+            const nextCat = clone(catalog), nextCl = clone(clients);
+            const clMap = new Map(nextCl.map(c => [norm(c.name), c]));
+            const touched = new Set(), seen = new Set(), warnings = [];
+            const newClients = [], newGammes = [], newProducts = [];
+            let used = 0, imported = 0;
+
+            table.rows.forEach((r, i) => {
+                const line = i + 2;
+                const name = cell(r, cols.client), pRaw = cell(r, cols.product);
+                if (!name || !pRaw) { warnings.push(`Ligne ${line} : client ou produit manquant`); return; }
+                const vol = parseNum(r[cols.volume]);
+                if (vol === null || vol < 0) { warnings.push(`Ligne ${line} : volume invalide (« ${cell(r, cols.volume)} »)`); return; }
+                let yearKey = '';
+                if (cols.annee >= 0) {
+                    const yRaw = cell(r, cols.annee), yNum = parseNum(yRaw);
+                    if (yRaw) {
+                        if (yNum !== null && yNum >= 1900 && yNum <= 2999) yearKey = String(Math.round(yNum));
+                        else { warnings.push(`Ligne ${line} : année invalide (« ${yRaw} »), rattachée à l'année en cours`); yearKey = curYear; }
+                    } else yearKey = curYear;
+                }
+
+                const gName = cell(r, cols.gamme);
+                let g = gName ? nextCat.find(x => norm(x.gamme) === norm(gName)) : nextCat.find(x => x.items.some(p => norm(p) === norm(pRaw)));
+                if (!g) {
+                    const nm = gName || 'Non classé';
+                    g = nextCat.find(x => norm(x.gamme) === norm(nm));
+                    if (!g) { g = { gamme: nm, description: gName ? 'Créée par import' : 'Produits sans gamme renseignée', items: [] }; nextCat.push(g); newGammes.push(nm); }
+                }
+                let prod = g.items.find(p => norm(p) === norm(pRaw));
+                if (!prod) { g.items.push(pRaw); prod = pRaw; newProducts.push(pRaw); }
+
+                const key = norm(name);
+                let cl = clMap.get(key);
+                if (!cl) {
+                    cl = { id: uid('c'), name, type: normType(cell(r, cols.type)) || TYPE_FAB, region: normRegion(cell(r, cols.region)) || NO_REGION, zone: cell(r, cols.zone), notes: '', stakeholders: [], sales: {} };
+                    nextCl.push(cl); clMap.set(key, cl); newClients.push(name);
+                }
+                touched.add(cl.id);
+                const gs = (cl.sales ??= {})[g.gamme] ??= {};
+                const sk = cl.id + '|' + g.gamme + '|' + prod + '|' + yearKey;
+                if (!seen.has(sk)) {
+                    const curBox = (typeof gs[prod] === 'number') ? { '': gs[prod] } : clone(gs[prod] || {});
+                    curBox[yearKey] = (mode === 'add') ? round2((Number(curBox[yearKey]) || 0) + vol) : round2(vol);
+                    gs[prod] = curBox;
+                    seen.add(sk);
+                } else if (mode === 'add') {
+                    gs[prod][yearKey] = round2((Number(gs[prod][yearKey]) || 0) + vol);
+                }
+                used++; imported += vol;
+            });
+
+            if (!used) throw new Error('Aucune ligne exploitable dans ce fichier.');
+            const before = clients.reduce((a, c) => a + clientTotal(c), 0), after = nextCl.reduce((a, c) => a + clientTotal(c), 0);
+            return {
+                title: 'Aperçu : import des ventes',
+                stats: [
+                    { label: 'Lignes importées', value: `${used} / ${table.rows.length}` },
+                    { label: 'Volume lu', value: fmtT(imported) },
+                    { label: 'Clients créés', value: newClients.length },
+                    { label: 'Clients mis à jour', value: touched.size - newClients.length },
+                    { label: 'Volume total', value: `${fmtT(before)} → ${fmtT(after)}` },
+                    { label: 'Mode', value: mode === 'add' ? 'Ajout' : 'Remplacement' }
+                ],
+                lists: [{ title: 'Nouveaux clients', items: newClients }, { title: 'Nouvelles gammes', items: newGammes }, { title: 'Nouveaux produits', items: [...new Set(newProducts)] }],
+                warnings,
+                apply: () => { catalog = nextCat; clients = nextCl; commit(); toast(`Ventes importées : ${used} ligne(s), ${newClients.length} nouveau(x) client(s).`); }
+            };
+        }
+
+        async function handleImportFile(file, kind) {
+            if (!file) return;
+            try {
+                const table = await readTable(file);
+                const plan = kind === 'catalog' ? planCatalogImport(table) : planSalesImport(table, document.querySelector('input[name="sales-mode"]:checked').value);
+                showImportPreview(plan);
+            } catch (err) { toast(err.message || String(err), 'err'); }
+        }
+
+        function bindDropzone(zoneId, inputId, kind) {
+            const zone = $(zoneId), input = $(inputId);
+            input.addEventListener('change', () => { const f = input.files[0]; input.value = ''; handleImportFile(f, kind); });
+            ['dragenter', 'dragover'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('is-over'); }));
+            ['dragleave', 'drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('is-over'); }));
+            zone.addEventListener('drop', e => handleImportFile(e.dataTransfer.files[0], kind));
+        }
+
+        /* ============================== EXPORTS ============================== */
+        function toCSV(rows) {
+            const q = v => { const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+            return '\uFEFF' + rows.map(r => r.map(q).join(';')).join('\r\n');
+        }
+        const frNum = n => String(n).replace('.', ',');
+
+        function exportCatalogCSV() {
+            const rows = [['Gamme', 'Description', 'Produit']];
+            catalog.forEach(g => { if (!g.items.length) rows.push([g.gamme, g.description || '', '']); g.items.forEach(p => rows.push([g.gamme, g.description || '', p])); });
+            download('catalogue-gammes-produits.csv', toCSV(rows), 'text/csv;charset=utf-8');
+        }
+        function exportSalesCSV() {
+            const rows = [['Client', 'Type', 'Région', 'Zone', 'Gamme', 'Produit', 'Année', 'Volume (T)']];
+            clients.forEach(c => Object.entries(c.sales || {}).forEach(([g, ps]) => Object.entries(ps).forEach(([p, v]) => {
+                const boxes = (typeof v === 'number') ? [['', v]] : Object.entries(v || {});
+                boxes.forEach(([y, vol]) => { if (Number(vol) > 0) rows.push([c.name, c.type, c.region, c.zone || '', g, p, y, frNum(vol)]); });
+            })));
+            if (rows.length === 1) { toast("Aucune vente à exporter.", 'err'); return; }
+            download('ventes-clients-' + localISO() + '.csv', toCSV(rows), 'text/csv;charset=utf-8');
+        }
+        function downloadSalesTemplate() {
+            const g1 = catalog[0], g2 = catalog[1] || catalog[0];
+            const rows = [['Client', 'Type', 'Région', 'Zone', 'Gamme', 'Produit', 'Année', 'Volume (T)'],
+                ['Exemple Client A', TYPE_FAB, 'Bretagne', '22, 35', g1?.gamme || 'Minéraux & Vitamines', g1?.items[0] || 'Produit 1', localISO().slice(0, 4), '120,5'],
+                ['Exemple Client A', TYPE_FAB, 'Bretagne', '22, 35', g2?.gamme || 'Additifs', g2?.items[0] || 'Produit 2', localISO().slice(0, 4), '35'],
+                ['Exemple Client B', TYPE_DIST, 'Pays de la Loire', '44, 49', g1?.gamme || 'Minéraux & Vitamines', g1?.items[0] || 'Produit 1', String(Number(localISO().slice(0, 4)) - 1), '60']];
+            download('modele-import-ventes.csv', toCSV(rows), 'text/csv;charset=utf-8');
+        }
+        function exportBackup() {
+            download('sauvegarde-crm-' + localISO() + '.json', JSON.stringify({ version: 3, exportedAt: new Date().toISOString(), catalog, clients, visits, tasks, ops, meetings }, null, 2), 'application/json');
+        }
+        async function restoreBackup(file) {
+            if (!file) return;
+            try {
+                const d = JSON.parse(await file.text());
+                if (!Array.isArray(d.catalog) || !Array.isArray(d.clients)) throw new Error('Fichier de sauvegarde non reconnu.');
+                if (!confirm(`Restaurer cette sauvegarde (${d.clients.length} clients, ${(d.tasks || []).length} tâches) ? Les données actuelles seront remplacées.`)) return;
+                ({ catalog, clients, visits, tasks, ops, meetings } = migrateVault(d));
+                commit(); toast('Sauvegarde restaurée.');
+            } catch (err) { toast(err.message || 'Fichier invalide.', 'err'); }
+        }
+
+        /* ============================== DEMARRAGE ============================== */
+        document.addEventListener('DOMContentLoaded', () => {
+            initKanban();
+            initOps();
+            bindDropzone('dz-catalog', 'file-catalog', 'catalog');
+            bindDropzone('dz-sales', 'file-sales', 'sales');
+            $('file-backup').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; restoreBackup(f); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden')); });
+            ['click', 'keydown', 'mousemove', 'touchstart'].forEach(ev => document.addEventListener(ev, resetIdle, { passive: true }));
+            startAuth();
+        });
+    </script>
+</body>
+</html>
